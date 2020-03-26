@@ -1,0 +1,49 @@
+#####  postgresql installation linux
+
+sudo apt-get install lsb-release
+ add-apt-repository "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -sc)-pgdg main"
+ wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+ apt-get update &&   apt-get install postgresql-9.6
+
+###### configurar o password para o user postgres
+
+su - postgres && psql 
+
+\du
+\l
+alter user postgres with password 'postgres';
+
+#### configurar parametros de conexao para o postgres
+
+pico /etc/postgresql/9.6/main/postgresql.conf
+
+mudar a linha
+#listen_addresses = 'localhost' para
+listen_addresses = '*'
+
+pico /etc/postgresql/9.6/main/pg_hba.conf
+addicionar a linha 
+host    all             all             192.168.100.0/24        md5
+por baixo de # IPv4 local connections:
+
+######## inicar postgresql quando o servidor openmrs iniciar
+
+update-rc.d postgresql defaults
+
+########## Correr o script no postgresql para actualizar todas prescricoes de modo a ter o 'Clinico Generico'
+(o id pode variar de us para us na tabela doctor )
+
+UPDATE public.prescription
+   SET doctor=36748
+ WHERE doctor !=36748;
+
+
+
+
+ ABC+AZT+3TC+LPV/r '106e650c-0fe3-4193-acb4-74afe900382a'
+
+ AZT+3TC+ABC  	3e7f46c7-a971-4c0c-82aa-a65589fd518e
+
+ AZT+3TC+DTG 9cb63f72-4c08-4543-878a-537dcabe5670
+
+ TDF+ABC+3TC+LPV/r   	71fd3c9a-8e9c-4f1f-ad85-4f979e59dbd1
