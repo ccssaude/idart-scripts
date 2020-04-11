@@ -259,26 +259,79 @@ getPacLevMaisRecente <- function(index,nid){
 
 updatePatSameUuuidDifNid <- function(df.duplicados,con.postgres){
   
-  dups_mesmo_uuid_nid_diff <- df.duplicados[which(df.duplicados$patientid!=df.duplicados$identifier),]
+  dups_mesmo_uuid_nid_diff <- df.duplicados[which(df.duplicados$patientid!=df.duplicados$identifier)]
   
-  if( dim(dups_mesmo_uuid_nid_diff)[1]>1 ){
+  
+  
+  if( dim(dups_mesmo_uuid_nid_diff)[1]>0 ){
+    
+    
     for (v in 1:dim(dups_mesmo_uuid_nid_diff)[1]) {
       
-      nid_novo <- dups_mesmo_uuid_nid_diff$identifier[v]
-      id  <- dups_mesmo_uuid_nid_diff$id[v]
-      dbExecute(con.postgres,paste0("update  public.patientidentifier set value ='",nid_novo,  "' where patient_id = ",  id, ";"   ))
-      dbExecute(con.postgres,paste0("update  public.patient set patientid ='", nid_novo,  "' where id = ",  id, ";"   ))
+      out <- tryCatch(
+        {
+          
+          
+          # Just to highlight: if you want to use more than one 
+          # R expression in the "try" part then you'll have to 
+          # use curly brackets.
+          # 'tryCatch()' will return the last evaluated expression 
+          # in case the "try" part was completed successfully
+            nid_novo <- dups_mesmo_uuid_nid_diff$identifier[v]
+            nome_novo <- paste0(dups_mesmo_uuid_nid_diff$given_name[v]," ",dups_mesmo_uuid_nid_diff$middle_name[v] )
+            apelido_novo <-dups_mesmo_uuid_nid_diff$family_name[v]
+            id  <- dups_mesmo_uuid_nid_diff$id[v]
+            message(paste0("Actualizando dados do paciente: ",dups_mesmo_uuid_nid_diff$patientid[v], " para NID:", nid_novo,",  Nome: ",nome_novo, " ",apelido_novo))
+            dbExecute(con.postgres,paste0("update  public.patientidentifier set value ='",nid_novo,  "' where patient_id = ",  id, ";"   ))
+            dbExecute(con.postgres,paste0("update  public.patient set patientid = '", nid_novo,  "' where id = ",  id, ";"   ))
+            dbExecute(con.postgres,paste0("update  public.patient set firstnames = '", nome_novo,  "' , lastname ='", apelido_novo, "' where id = ",  id, ";"   ))
+         
+            
+          },
+          error=function(cond) {
+            
+            message("Nao foi possivel Actualizar o NID do paciente":dups_mesmo_uuid_nid_diff$patientid[v] )
+            message(cond)
+            # Choose a return value in case of error
+            return(NA)
+          },
+          warning=function(cond) {
+            message("Here's the original warning message:")
+            message(cond)
+            # Choose a return value in case of warning
+            return(NULL)
+          },
+          finally={
+            # NOTE:
+            # Here goes everything that should be executed at the end,
+            # regardless of success or error.
+            # If you want more than one expression to be executed, then you 
+            # need to wrap them in curly brackets ({...}); otherwise you could
+            # just have written 'finally=<expression>' 
+            # message(paste("Processed URL:", url))
+            # message("Some other message at the end")
+          }
+        )
+        
+        if(out==1){
+          ## Remover pacientes corrigidos da tabela dos pacientes duplicados
+          ## Usei a a clausula not in ! %in%
+          logAction(df = df.duplicados,index =which(dups_idart_openmrs$id==dups_mesmo_uuid_nid_diff$id[v]),
+                    action = paste0("G2.7-CC  Nid do paciente e nomes mudaram para NID: ",dups_mesmo_uuid_nid_diff$identifier[v], ", Nome: ",dups_mesmo_uuid_nid_diff$given_name[v],
+                                    " , Apelido: ",dups_mesmo_uuid_nid_diff$family_name[v]) )
+          df.duplicados <-subset(df.duplicados, !(df.duplicados$id %in% dups_mesmo_uuid_nid_diff$id[v]),) 
+          
+        }
     }
-    ## Remover pacientes corrigidos da tabela dos pacientes duplicados
-    ## Usei a a clausula not in ! %in%
-    df <-subset(df.duplicados, !(df.duplicados$id %in% dups_mesmo_uuid_nid_diff$id),) 
     
     
-    df # same as return(df)
+    return(df.duplicados) 
+     
+    }
     
-  } else {
+    else {
     
-    df.duplicados
+      df.duplicados # same as return(df)
     
   }
 }
@@ -291,3 +344,24 @@ SetSolucao <- function (index_1,index_2, solucao){
   dups_idart_openmrs$solucao[index_2] <- solucao
   
 }
+
+
+#' Escreve  os logs das accoes executadas nas DBs iDART/OpenMRS numa tabela logsExecucao
+#' 
+#' @param df tabela de duplicados para extrair alguns dados 
+#' @param index row do paciente em causa na tabela dos duplicados.
+#' @param action descricao das accoes executadas sobre o paciente
+#' @return append uma row na tabela logs
+#' @examples
+#' actualizaNidiDART(con_idart, '0111030701/2014/00065',56,'0111030701/2016/00087')
+logAction <- function (df,index,action){
+  
+ id = df$id[index]
+ uuid = df$uuid[index]
+ patient.id = df$patientid[index]
+ full.name =  df$full_name[index]
+ temp =   add_row(logsExecucao, id=id,uuid=uuid,patientid=patient.id,full_name=full.name,accao=action)
+ logsExecucao <<- rbind.fill(logsExecucao, temp)
+ 
+}
+

@@ -10,11 +10,11 @@ require(dplyr)  ## Este package contem a funcao inner_join
 
 ####################################### Configuracao de Parametros  ###########################################################################
 ###############################################################################################################################################
-wd <- '~/R/iDART/ccs/dataClean/'  ## Configure para qualquer directorio , onde guardas os ficheiros helperFunctions.R  helper_fucntions_idart.R
+wd <- '~/R/iDART/idart-scripts/dataClean/'  ## Configure para qualquer directorio , onde guardas os ficheiros helperFunctions.R  helper_fucntions_idart.R
                                   ## dataConsistency.R Duplicated.R
 setwd(wd)
 source('helper_functions_duplicated.R')  ## Carregar funcoes
-
+source('nidRelatedFunctions.R')
 
 ## OpenMRS Stuff - Configuracoes de variaveis de conexao 
 openmrs.user ='esaude'
@@ -36,6 +36,8 @@ postgres.host='127.0.0.3'
 postgres.port=5432
 # Objecto de connexao com a bd openmrs postgreSQL
 con_postgres <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres.password, dbname = postgres.db.name,host = postgres.host)
+
+
 ############################################################################################################################################
 ############################################################################################################################################
 
@@ -51,10 +53,15 @@ duplicadosOpenmrs <- getDuplicatesPatOpenMRS(con_openmrs)
 duplicadosiDART <-   getDuplicatesPatiDART(con_postgres)
 
 
+
+
 # Cruzar duplicados iDART  com dados do openmrs
 dups_idart_openmrs <- inner_join(duplicadosiDART,openmrsAllPatients, by=c("uuid"))
 dups_idart_openmrs$solucao <- ""
-
+#  Cria a tabela de logs
+logsExecucao <- dups_idart_openmrs[1,c(1,2,4,8 )]
+logsExecucao$accao <- ""
+logsExecucao <- logsExecucao[0,c(1:5)]
 
 #############################################  Para cada grupo de duplicados (NID) definir Solucao  #########################################################
 #############################################  G 1,2,3,4 - Categorias de duplicados  ######################################################################### 
@@ -99,7 +106,7 @@ dups_idart_openmrs$solucao <- ""
 ## Solucao (G2.6) - Trocar o nid de  um dos pacientes  no OpenMRS e o correspondente no iDART############ 
 ############ 
 ## Grupo   2.7 (G1.7):  -Pacientes com mesmo uuid iDART/OpenMRS mas os NIDs sao diferentes############ 
-## Solucao G2.7:   Actualizar o NID no iDART , copiar do OpenMRS
+## Solucao G2.7-CC   Actualizar o NID no iDART , copiar do OpenMRS
 ############ 
 ############ 
 ################################  Grupo 3 (G3): Pacientes  duplicados  com uuids diferentes e nomes semelhantes  ( Algoritmo de simetria de Nomes)############ 
@@ -117,12 +124,8 @@ dups_idart_openmrs$solucao <- ""
 ##############################################################################################################################################################
 
 
-
-
-
-## Grupo   2.7 (G1.7):  -Pacientes com mesmo uuid iDART/OpenMRS mas os NIDs sao diferentes
 ## Solucao G2.7:   Actualizar o NID no iDART , copiar do OpenMRS
-dups_idart_openmrs <- updatePatSameUuuidDifNid(dups_idart_openmrs,con_postgres)
+#dups_idart_openmrs <- updatePatSameUuuidDifNid(dups_idart_openmrs,con_postgres)
 
 
 
@@ -133,7 +136,7 @@ for (i in 1:length(nidsAllDupsPatients)) {
    nid_duplicado <- nidsAllDupsPatients[i]
   
    index <- which(dups_idart_openmrs$patientid==nid_duplicado)
-    df_temp <- dups_idart_openmrs[index,]
+   df_temp <- dups_idart_openmrs[index,]
   
   if(length(index)==2){
     
@@ -142,14 +145,14 @@ for (i in 1:length(nidsAllDupsPatients)) {
       # Verificar se e duplicado no OpenMRS 
       if(dups_idart_openmrs$uuid[index[1]] %in% duplicadosOpenmrs$uuid){
         # Solucao Grupo 1 (G1.1)
-        solucao <- "G1.1 -  Unir  os paciente no iDART e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados"
+        solucao <- "G1.1-CM -  Unir  os paciente no iDART e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados"
         dups_idart_openmrs$solucao[index[1]] <- solucao
         dups_idart_openmrs$solucao[index[2]] <- solucao
       } else
       {
         # nao e duplicado no OpenMRS
         # Solucao Grupo 1.2 (G1.2)
-        solucao <- "G1.2 - Unir  os paciente no iDART , o   paciente preferido e aquele que tiver levantamentos mais actualizados"
+        solucao <- "G1.2-CM - Unir  os paciente no iDART , o   paciente preferido e aquele que tiver levantamentos mais actualizados"
         dups_idart_openmrs$solucao[index[1]] <- solucao       
         dups_idart_openmrs$solucao[index[2]] <- solucao
       }
@@ -163,12 +166,17 @@ for (i in 1:length(nidsAllDupsPatients)) {
       
       nome_pat_1 <- dups_idart_openmrs$full_name[index[1]]
       nome_pat_2 <- dups_idart_openmrs$full_name[index[2]]
+      
+      uuid_pat_1 <- dups_idart_openmrs$uuid[index[1]]
+      uuid_pat_2 <- dups_idart_openmrs$uuid[index[2]]
+      id_pat_1 <- dups_idart_openmrs$id[index[1]]
+      id_pat_2 <- dups_idart_openmrs$id[index[2]]
       estado_tarv_1 <- dups_idart_openmrs$estado_tarv[index[1]]
       estado_tarv_2 <- dups_idart_openmrs$estado_tarv[index[2]]
       
       if(stringdist(nome_pat_1,nome_pat_2, method = "jw") > 0.1){     # Grupo 2 (G2)
                                                                       #s e o rsultado de stringdist for:
-                                                                     # 0 - perfect match, 0,1 - minimo aceitavel definido por mim, 1 - no match at al
+                                                                      # 0 - perfect match, 0.1 - minimo aceitavel definido, 1 - no match at al
         if(! (is.na(estado_tarv_1) | is.na(estado_tarv_2)) ) {
           
         if(estado_tarv_1 == estado_tarv_2 & estado_tarv_2=='ABANDONO')        { 
@@ -176,13 +184,17 @@ for (i in 1:length(nidsAllDupsPatients)) {
           
           if(nid_duplicado %in% duplicadosOpenmrs$Nid){
           
-            pac_lev_menos_rec <- getPacLevMenosRecente(index,nid_duplicado)[3]
+          pac_lev_menos_rec <- getPacLevMenosRecente(index,nid_duplicado)[3]
           solucao <- paste0("G2.1 - Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS,  de preferencia: ", pac_lev_menos_rec, " por ter a data do ult lev menos recente")
           dups_idart_openmrs$solucao[index[1]] <- solucao      
           dups_idart_openmrs$solucao[index[2]] <- solucao
-          # Solucao G2.1:-CC  kaka
+          # Solucao G2.1:-CC  TODO
           if(checkNidFormat(nid_duplicado)){
-            
+            if(nid_duplicado %in% duplicadosOpenmrs$Nid){
+              
+              
+              
+            }
           } 
           }
         } 
@@ -359,7 +371,7 @@ for (i in 1:length(nidsAllDupsPatients)) {
                 
               }
                 else {
-                # TODO estad_tarv_1 e transferido de 
+                # estad_tarv_1 e transferido de 
                 # Verificar se e duplicado no OpenMRS  
                 if(nid_duplicado %in% duplicadosOpenmrs$Nid){
                   # Solucao (G2.5) - Um dos  pacientes nao tem estado no programa TARV  OpenMRS
@@ -480,16 +492,3 @@ a = subset(dups_idart_openmrs, TRUE,c('uuid',  'patientid',
                                        'data_ult_levant',
                                        'estado_tarv' , 'solucao'
 ))
-
-a = subset(dups_idart_openmrs, TRUE,c( 'id', 'uuid',
-                                            'patientid',
-
-                                             'dateofbirth',
-                                            'full_name',
-                                            'total_levantamentos',
-                                             'full_name_openmrs',
-                                       'identifier',
-                                             'birthdate',
-                                       'data_ult_levant',
-                                             'estado_tarv' , 'solucao'
-                                           ))
