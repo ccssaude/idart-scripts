@@ -1,4 +1,5 @@
 
+
 getAllPatientsIdart <- function(connection) {
   patients  <-
     dbGetQuery(
@@ -226,36 +227,174 @@ HAVING COUNT(*)>=2 ) order by pat.patientid
   dups
 }
 
-
-getPacLevMenosRecente <- function(index,nid){
+#' Busca dados do paciente com Lev menos recentes na tabela/dataframe dos duplcados
+#' 
+#' @param index index dos pacientes duplicados
+#' @param nid NID dos pacientes duplicados 
+#' @return vector com [id,uuid,patientid,openmrs_patient_id,full.name,index]  
+#' @examples getPacLevMenosRecente([12,34],'0110201001/2007/07819')
+getPacLevMenosRecente <- function(index, nid) {
+  data_levanta_menos_rec <-
+    min(dups_idart_openmrs[index, ]$data_ult_levant) # data de lev menos recente entre os 2 pac duplcds
   
-  data_levanta_menos_rec <-  min(dups_idart_openmrs[index,]$data_ult_levant) # data de lev menos recente entre os 2 pac duplcds
-  
-  if(is.na(data_levanta_menos_rec)){ 
-    index_pat_min_act <- which(is.na(dups_idart_openmrs$data_ult_levant) & dups_idart_openmrs$patientid==nid)
-   c(dups_idart_openmrs$id[index_pat_min_act],dups_idart_openmrs$uuid[index_pat_min_act],dups_idart_openmrs$full_name[index_pat_min_act])
-   
+  if (is.na(data_levanta_menos_rec)) {
+    index_pat_min_act <-
+      which(
+        is.na(dups_idart_openmrs$data_ult_levant) &
+          dups_idart_openmrs$patientid == nid
+      )
+    if (length(index_pat_min_act) == 0) {
+      ## os 2 pacientes nao tem a data do ult_levant
+      index_pat_min_act = index[1]   ## Consider o primeiro
+      patient <-
+        c(
+          dups_idart_openmrs$id[index_pat_min_act],
+          dups_idart_openmrs$uuid[index_pat_min_act],
+          dups_idart_openmrs$patientid[index_pat_min_act],
+          dups_idart_openmrs$patient_id[index_pat_min_act],
+          dups_idart_openmrs$full_name[index_pat_min_act],
+          index_pat_min_act
+        )
+      return(patient)
+    } else {
+      patient <-
+        c(
+          dups_idart_openmrs$id[index_pat_min_act],
+          dups_idart_openmrs$uuid[index_pat_min_act],
+          dups_idart_openmrs$patientid[index_pat_min_act],
+          dups_idart_openmrs$patient_id[index_pat_min_act],
+          dups_idart_openmrs$full_name[index_pat_min_act],
+          index_pat_min_act
+        )
+      return(patient)
+    }
+    
+    
   } else {
-    index_pat_min_act <- which(dups_idart_openmrs$data_ult_levant==data_levanta_menos_rec & dups_idart_openmrs$patientid==nid)
-    c(dups_idart_openmrs$id[index_pat_min_act],dups_idart_openmrs$uuid[index_pat_min_act],dups_idart_openmrs$full_name[index_pat_min_act])
-   }
- 
+    index_pat_min_act <-
+      which(
+        dups_idart_openmrs$data_ult_levant == data_levanta_menos_rec &
+          dups_idart_openmrs$patientid == nid
+      )
+    patient <-
+      c(
+        dups_idart_openmrs$id[index_pat_min_act],
+        dups_idart_openmrs$uuid[index_pat_min_act],
+        dups_idart_openmrs$patientid[index_pat_min_act],
+        dups_idart_openmrs$patient_id[index_pat_min_act],
+        dups_idart_openmrs$full_name[index_pat_min_act],
+        index_pat_min_act
+      )
+    return(patient)
+  }
+  
 }
 
-getPacLevMaisRecente <- function(index,nid){
+#' Busca dados do paciente com Lev mais recentes na tabela/dataframe dos duplcados
+#' 
+#' @param index index dos pacientes duplicados
+#' @param nid NID dos pacientes duplicados
+#' @return vector com [id,uuid,patientid,openmrs_patient_id,full.name,index]  
+#' @examples getPacLevMaisRecente([12,34],'0110201001/2007/07819')
+getPacLevMaisRecente <- function(index, nid) {
+  data_levanta_rec <-
+    max(dups_idart_openmrs[index, ]$data_ult_levant) # data de lev menos recente entre os 2 pac duplcds
   
-  data_levanta_rec <-  max(dups_idart_openmrs[index,]$data_ult_levant) # data de lev menos recente entre os 2 pac duplcds
-  
-  if(is.na(data_levanta_rec)){ 
-    index_pat_mais_rec <- which(!is.na(dups_idart_openmrs$data_ult_levant) & dups_idart_openmrs$patientid==nid)
-    c(dups_idart_openmrs$id[index_pat_mais_rec],dups_idart_openmrs$uuid[index_pat_mais_rec],dups_idart_openmrs$full_name[index_pat_mais_rec])
+  if (is.na(data_levanta_rec)) {
+    index_pat_mais_rec <-
+      which(
+        !is.na(dups_idart_openmrs$data_ult_levant) &
+          dups_idart_openmrs$patientid == nid
+      )
+    if (length(index_pat_mais_rec) == 0) {
+      ## os 2 pacientes nao tem a data do ult_levant
+      index_pat_mais_rec = index[1]   ## Consider o primeiro
+      patient <-
+        c(
+          dups_idart_openmrs$id[index_pat_mais_rec],
+          dups_idart_openmrs$uuid[index_pat_mais_rec],
+          dups_idart_openmrs$patientid[index_pat_mais_rec],
+          dups_idart_openmrs$patient_id[index_pat_mais_rec],
+          dups_idart_openmrs$full_name[index_pat_mais_rec],
+          index_pat_mais_rec
+        )
+      return(patient)
+    } else {
+      patient <-
+        c(
+          dups_idart_openmrs$id[index_pat_mais_rec],
+          dups_idart_openmrs$uuid[index_pat_mais_rec],
+          dups_idart_openmrs$patientid[index_pat_mais_rec],
+          dups_idart_openmrs$patient_id[index_pat_mais_rec],
+          dups_idart_openmrs$full_name[index_pat_mais_rec],
+          index_pat_mais_rec
+        )
+      return(patient)
+    }
+    
+    
   } else {
-    
-    index_pat_mais_rec <- which((dups_idart_openmrs$data_ult_levant)==data_levanta_rec & dups_idart_openmrs$patientid==nid)
-    c(dups_idart_openmrs$id[index_pat_mais_rec],dups_idart_openmrs$uuid[index_pat_mais_rec],dups_idart_openmrs$full_name[index_pat_mais_rec])
-    
+    index_pat_mais_rec <-
+      which((dups_idart_openmrs$data_ult_levant) == data_levanta_rec &
+              dups_idart_openmrs$patientid == nid
+      )
+    patient <-
+      c(
+        dups_idart_openmrs$id[index_pat_mais_rec],
+        dups_idart_openmrs$uuid[index_pat_mais_rec],
+        dups_idart_openmrs$patientid[index_pat_mais_rec],
+        dups_idart_openmrs$patient_id[index_pat_mais_rec],
+        dups_idart_openmrs$full_name[index_pat_mais_rec],
+        index_pat_mais_rec
+      )
+    return(patient)
   }
 }
+
+#' Busca o paciente nao activo entre os duplicados
+#' 
+#' @param index index dos pacientes duplicados
+#' @param nid NID dos pacientes duplicados 
+#' @return vector com [id,uuid,patientid,openmrs_patient_id,full.name,index]  
+#' @examples getPacInactivo([12,34],'0110201001/2007/07819')
+getPacActivo<- function(index, nid) {
+  index_pat_inactivo <-which((dups_idart_openmrs[index, ]$estado_tarv %in% C('ACTIVO NO PROGRAMA','TRANSFERIDO DE')) & 
+                               dups_idart_openmrs$patientid == nid ) #  index do paciente Nao activo
+ 
+      patient <-
+        c(
+          dups_idart_openmrs$id[index_pat_inactivo],
+          dups_idart_openmrs$uuid[index_pat_inactivo],
+          dups_idart_openmrs$patientid[index_pat_inactivo],
+          dups_idart_openmrs$patient_id[index_pat_inactivo],
+          dups_idart_openmrs$full_name[index_pat_inactivo],
+          index_pat_inactivo
+        )
+      return(patient)
+    }
+    
+#' Busca o paciente Inactivo entre os duplicados
+#' 
+#' @param index index dos pacientes duplicados
+#' @param nid NID dos pacientes duplicados 
+#' @return vector com [id,uuid,patientid,openmrs_patient_id,full.name,index]  
+#' @examples getPacInactivo([12,34],'0110201001/2007/07819')
+getPacInactivo <- function(index, nid) {
+  index_pat_inactivo <-which(! ((dups_idart_openmrs[index, ]$estado_tarv %in% C('ACTIVO NO PROGRAMA','TRANSFERIDO DE')) & 
+                               (dups_idart_openmrs$patientid == nid )) )  #  index do paciente Nao activo
+  
+  patient <-
+    c(
+      dups_idart_openmrs$id[index_pat_inactivo],
+      dups_idart_openmrs$uuid[index_pat_inactivo],
+      dups_idart_openmrs$patientid[index_pat_inactivo],
+      dups_idart_openmrs$patient_id[index_pat_inactivo],
+      dups_idart_openmrs$full_name[index_pat_inactivo],
+      index_pat_inactivo
+    )
+  return(patient)
+}
+
 
 updatePatSameUuuidDifNid <- function(df.duplicados,con.postgres){
   
@@ -337,31 +476,10 @@ updatePatSameUuuidDifNid <- function(df.duplicados,con.postgres){
 }
 
 
-SetSolucao <- function (index_1,index_2, solucao){
+logSolucao <- function (index_1,index_2, solucao){
   
   
   dups_idart_openmrs$solucao[index_1] <- solucao
   dups_idart_openmrs$solucao[index_2] <- solucao
   
 }
-
-
-#' Escreve  os logs das accoes executadas nas DBs iDART/OpenMRS numa tabela logsExecucao
-#' 
-#' @param df tabela de duplicados para extrair alguns dados 
-#' @param index row do paciente em causa na tabela dos duplicados.
-#' @param action descricao das accoes executadas sobre o paciente
-#' @return append uma row na tabela logs
-#' @examples
-#' actualizaNidiDART(con_idart, '0111030701/2014/00065',56,'0111030701/2016/00087')
-logAction <- function (df,index,action){
-  
- id = df$id[index]
- uuid = df$uuid[index]
- patient.id = df$patientid[index]
- full.name =  df$full_name[index]
- temp =   add_row(logsExecucao, id=id,uuid=uuid,patientid=patient.id,full_name=full.name,accao=action)
- logsExecucao <<- rbind.fill(logsExecucao, temp)
- 
-}
-

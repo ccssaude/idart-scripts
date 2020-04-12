@@ -3,17 +3,18 @@
 #' Actualiza Nids na tabela Patient iDART.
 #' 
 #' @param con.idart conexao com  a PostgresSQL- iDART.
-#' @param old.patient.patient.id NID do paciente a ser actualizado.
-#' @param patient.id.idart id do paciente a ser actualizado
+#' @param patient.to.update vector[id,uuid,patientid,openmrs_patient_id,full.name]  Informacao do paciente a ser actualizado.
 #' @param new.nid Novo NID do paciente a ser actualizado.
 #' @return 1, 0.
 #' @examples
-#' actualizaNidiDART(con_idart, '0111030701/2014/00065',56,'0111030701/2016/00087')
-actualizaNidiDART <-   function(con.idart, old.patient.patientid,patient.id.idart,new.nid) {
+#' pat <- c('1,'32435sd-3435sd-35353-wvadfw2-43gf54',0111030701,,'Agostionho Banze)
+#' actualizaNidiDART(con_idart, pat ,'0111030701/2016/00087')
+#' 
+actualizaNidiDART <-   function(con.idart, patient.to.update,new.nid) {
   
   idart <- tryCatch({
     
-    message(paste0( "iDART - Actualizando dados do paciente: ",old.patient.patientid , " para NID:", new.nid ) )
+    message(paste0( "iDART - Actualizando dados do paciente: ",patient.to.update[3] , " para NID:", new.nid ) )
     
     dbExecute(
       con.postgres,
@@ -21,7 +22,7 @@ actualizaNidiDART <-   function(con.idart, old.patient.patientid,patient.id.idar
         "update  public.patientidentifier set value ='",
         new.nid,
         "' where patient_id = ",
-        patient.id.idart,
+        as.numeric(patient.to.update[1]),
         " ;"
       )
     )
@@ -31,19 +32,28 @@ actualizaNidiDART <-   function(con.idart, old.patient.patientid,patient.id.idar
         "update  public.patient set patientid = '",
         new.nid,
         "' where id = ",
-        patient.id.idart,
+        as.numeric(patient.to.update[1]),
         " ;"
       )
-    )
+    ) 
     
+    dbExecute(
+      con.postgres,
+      paste0(
+        "update  public.packagedruginfotmp set patientid = '",
+        new.nid,
+        "' where patientid = ",
+        patient.to.update[3]),  " ;"
+      )
     
     
   },
   error = function(cond) {
-    message("Nao foi possivel Actualizar o NID do paciente":old.patient.patientid)
-    message(cond)
+    msg <- paste0("iDART - Nao foi possivel Actualizar o NID  ":patient.to.update[3], ' Para :', new.nid,  ' Erro: ', as.character(cond))
+    #message(msg) imprimir a mgs a consola
+    logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
-    return(0)
+    return(FALSE)
   },
   warning = function(cond) {
     message("Here's the original warning message:")
@@ -65,20 +75,22 @@ actualizaNidiDART <-   function(con.idart, old.patient.patientid,patient.id.idar
   
 }
 
-#' Actualiza Nids na tabela patientidentifier OpenMRS
+#' Actualiza Nids na tabela Patient OpenMRS
 #' 
-#' @param con.openmrs conexao com  MySQL- OpenMRS
-#' @param old.patient.patient.id NID do paciente a ser actualizado.
-#' @param patient.id.openmrs id do paciente a ser actualizado
+#' @param con.openmrs conexao com  a PostgresSQL- iDART.
+#' @param patient.to.update vector[id,uuid,patientid,openmrs_patient_id,full.name]  Informacao do paciente a ser actualizado.
 #' @param new.nid Novo NID do paciente a ser actualizado.
-#' @return dataframe with zero legth
+#' @return 1, 0.
 #' @examples
-#' actualizaNidiDART(con_openmrs, '0111030701/2014/00065',56,'0111030701/2016/00087')
-actualizaNidOpenMRS <-   function(con.openmrs, old.patient.patientid,patient.id.openmrs,new.nid) {
+#' pat <- c('1,'32435sd-3435sd-35353-wvadfw2-43gf54',0111030701,,'Agostionho Banze)
+#' actualizaNidOpenMRS(con_idart, pat ,'0111030701/2016/00087')
+#' 
+actualizaNidOpenMRS <-   function(con.openmrs, patient.to.update,new.nid) {
   
+  openmrs = TRUE
   openmrs <- tryCatch({
     
-    message(paste0( "OpenMRS - Actualizando dados   do paciente: ",old.patient.patientid , " para NID:", new.nid ) )
+    message(paste0( "OpenMRS - Actualizando dados   do paciente: ",patient.to.update[3] , " para NID:", new.nid ) )
     
     dbGetQuery(
       con.openmrs,
@@ -86,26 +98,29 @@ actualizaNidOpenMRS <-   function(con.openmrs, old.patient.patientid,patient.id.
         "update  patient_identifier set identifier ='",
         new.nid,
         "' where patient_id = ",
-        patient.id.openmrs,
+        patient.to.update[4],
         " ;"
       )
     )
+    
+    openmrs = TRUE
     
     
     
     
   },
   error = function(cond) {
-    message("Nao foi possivel Actualizar o NID do paciente":patient.patientid)
-    message(cond)
+    msg <- paste0("OpenMRS - Nao foi possivel Actualizar o NID  ":patient.to.update[3], ' Para :', new.nid,  ' Erro: ', as.character(cond))
+    #message(msg) imprimir a mgs a consola
+    logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
-    return(0)
+    return(FALSE)
   },
   warning = function(cond) {
     message("Here's the original warning message:")
     message(cond)
     # Choose a return value in case of warning
-    return(1)
+    return(TRUE)
   },
   finally = {
     # NOTE:
@@ -125,7 +140,7 @@ actualizaNidOpenMRS <-   function(con.openmrs, old.patient.patientid,patient.id.
 #' 
 #' @param NID do paciente
 #' @return  Numero de sequencia do NID
-#' @examples getNumSeqNid(0111030701/2010/00195)
+#' @examples getNumSeqNid(0111030701/2010/195) return '00195'
 getNumSeqNid <- function(nid){
   
   new_nid <- removeLettersFromNid(nid)
@@ -144,7 +159,7 @@ getNumSeqNid <- function(nid){
     return(0) ##  nao e possivel econtrar o numSeq
       }
     } else if (count == 2) {
-    if (getNidLength(new_nid) %in% c(15, 16, 17,18,19,20,21)) {
+    if (getNidLength(new_nid) %in% c(13,14,15, 16, 17,18,19,20,21)) {
       
       secon_index <- stri_locate_last(new_nid, regex = "/")[[1]]
       seq <- substr(new_nid, secon_index + 1, nchar(new_nid))
@@ -190,7 +205,7 @@ getAnoNid <- function(nid){
       return(FALSE) ##  nao e possivel econtrar o ano
        }
     } else if (count == 2) {
-      if (getNidLength(new_nid) %in% c(15, 16, 17,18,19,20,21)) {   # ex 1100711/18/0729, 11030701/15/0023, 11030701/08/04676, 0110040701/19/0547
+      if (getNidLength(new_nid) %in% c(13,14,15, 16, 17,18,19,20,21)) {   # ex 1100711/18/0729, 11030701/15/0023, 11030701/08/04676, 0110040701/19/0547
         first_index <- stri_locate_first(new_nid, regex = "/")[[1]]
         secon_index <- stri_locate_last(new_nid, regex = "/")[[1]]
         ano <- substr(new_nid,first_index+1, secon_index - 1)
@@ -217,12 +232,13 @@ getAnoNid <- function(nid){
 #' @param NID do paciente
 #' @return  Numero prox Sequencia  
 #' @examples getProxSequenciaNid(0111030701/2010/00195)
-getProxSequenciaNid <- function(nid,df.all.patients.openmrs){
+getProxSequenciaNid <- function(nid,df.openmrs.patients){
   
   seq_actual <- getNumSeqNid(nid)
   
   if(seq_actual!=0){
-    df <- df.all.patients.openmrs
+    df <- df.openmrs.patients
+    df$identifier <- sapply(df$identifier,removeLettersFromNid)
     df$ano <- sapply(df$identifier,getAnoNid)
     df$seq <- sapply(df$identifier,getNumSeqNid)
     year <- getAnoNid(nid)
@@ -231,7 +247,9 @@ getProxSequenciaNid <- function(nid,df.all.patients.openmrs){
       group_by(ano) %>%
       filter(ano == year,seq==max(seq)) %>% pull(seq)
       prox <- as.numeric(ultima_seq) + 1
+    
     rm(df)
+    
     return(formatSequencia(prox))
   } else {
     return(0)
@@ -301,6 +319,9 @@ formatUsCode <- function(codUS) {
     newCod <- paste0("01", substr(codUS,0,2),"0",substr(codUS,3,nchar(codUS)))
     return(newCod)
   } else  if (nchar(codUS) == 9) {
+    if(substr(codUS,0,1)!='1'){
+      codUS <- paste0('1',substr(codUS,2,nchar(codUS)))
+    }
     newCod <- paste0("0", codUS)
     return(newCod)
   } else {
@@ -337,7 +358,7 @@ formatNidMisau <- function(nid) {
         }
         
       } else if (count == 2) {
-        if (getNidLength(new_nid) %in% c(15, 16, 17,18,19,20)) {       # ex 1100711/18/0729, 11030701/15/0023, 11030701/08/04676, 0110040701/19/0547
+        if (getNidLength(new_nid) %in% c(13,14,15, 16, 17,18,19,20,21)) {       # ex 1100711/18/0729, 11030701/15/0023, 11030701/08/04676, 0110040701/19/0547
           
           if(0 != getUsCode(nid)){ 
             if(0 != getAnoNid(nid)){
@@ -384,6 +405,92 @@ formatNidDuasBarras <- function(nid) {
   nid_formatado # The same as return(nid_formatado)
 }
 
+#' Atribui um novo nid apartir do antigo,  agrupa os pacientes do ano  e buscando o ultimo numero de seq 
+#' depois acrecenta +1 ao numero de seq e forma um nid novo que nao existe na BD
+#' @param old.nid nid  do paciente que se vai atribuir novo nid
+#' @return  novo nid  
+#' @examples getNewNidNewSeq(0111030701/2010/00195) retorna 01111030701/2010/(ult_seq+1)
+#' @examples getNewNidNewSeq( 2145/11) retorna 01111030701/2011/(ult_seq+1)
+getNewNidNewSeq <- function(old.nid, df.openmrs.patients) {
+  
+  prox_seq <- getProxSequenciaNid(old.nid,df.openmrs.patients)
+  
+  us_code <- getUsCode(old.nid)
+  year <- getAnoNid(old.nid)
+  if(prox_seq!=0){
+    
+    if(0 != us_code){
+      
+      
+      if(0!= year){
+        
+        new_nid <-
+        paste0(us_code, "/",  year, "/", prox_seq)
+        new_nid  # The same as return(nid_formatado)
+      }else {return(0)}
+    
+    } else {return(0)}
+
+  } else{ return(0)}
+
+}
+
+#' Atribui um novo nid apartir do antigo,  trocando o cod de servico ou formatando obdecendo o 
+#' padrao do MISAU
+#' @param old.nid nid  do paciente que se vai atribuir novo nid
+#' @return  novo nid  
+#' @examples getNewNid(0111030701/2010/00195) retorna 0111030702/2010/00195
+#' @examples getNewNid( 2145/11) retorna 01111030701/2011/2145
+getNewNid <- function(old.nid) {
+  
+  new_nid <- formatNidMisau(old.nid)
+  if(new_nid ==old.nid ){
+    #TODO mudar o codigdo de servico
+    us_code <- getUsCode(new_nid)
+    new_us_cod <- changeUsCode(us_code)
+    nid_formatado <-
+      paste0(new_us_cod, "/",  getAnoNid(old.nid), "/", getNumSeqNid(old.nid))
+    nid_formatado # The same as return(nid_formatado)
+  }
+  else if(new_nid !=0 ){
+     return(new_nid)
+      }
+  else {
+        return(0)
+      }
+
+    }
+#' Verifica se o nid existe na BD iDART
+#' @param nid nid  do paciente que se vai atribuir novo nid
+#' @param df dataframe onde se faz a verificacao  
+#' @return  TRUE/FALSE
+#' @examples checkIfExistsNiD(0111030701/2010/00195,df) retorna TRUE se nid existe em df
+
+checkIfExistsNidOpenMRS <- function(nid,df) {
+  
+  if(nid %in% df$identifierSemLetras){
+    return(TRUE)
+  }else{
+    return(FALSE)
+  }
+  
+} 
+#' Verifica se o nid existe ns BD OpenMRS
+#' @param nid nid  do paciente que se vai atribuir novo nid
+#' @param df dataframe onde se faz a verificacao  
+#' @return  TRUE/FALSE
+#' @examples checkI
+checkIfExistsNidIdart <- function(nid,df) {
+  
+  if(nid %in% df$patientidSemLetras){
+    return(TRUE)
+  }else{
+    return(FALSE)
+  }
+  
+    
+} 
+
 # Verifica se NID tem barra
 checkBarraNid <- function(nid) {
   if (!grepl(pattern = "/", nid))
@@ -406,8 +513,10 @@ formatAno <- function(ano) {
   } else  if (nchar(ano) == 1) {
     newYear <- paste0("200", ano)
     return(newYear)
-  } else {
+  } else  if (nchar(ano) == 4) {
     return(ano)
+  } else {
+    return(0)
   }
   
 }
@@ -425,8 +534,10 @@ formatSequencia <- function(seq) {
   } else  if (nchar(seq) == 4) {
     newSequencia <- paste0("0", seq)
     return(newSequencia)
-  } else {
+  }  else  if (nchar(seq) == 5) {
     return(seq)
+  }else {
+    return(0)
   }
   
 }
@@ -489,3 +600,30 @@ evaluateAno<- function(year){
     return(FALSE)
   }
 }
+
+
+
+#' Modifica o codigo de servico de um codigo da US, troca  de 1 para 2 e vice versa
+#' 
+#' @param us.code  cod da us do nid
+#' @return  Novo cod da us  
+#' @examples changeUsCode('0111030701')
+changeUsCode<- function(us.code){
+  
+  first <- substr(us.code, 1, nchar(us.code)-1)
+  last <- substr(us.code, nchar(first)+1, nchar(us.code))
+  if(last==1){
+    last = 2
+    new_us_cod <- paste0(first,last)
+    new_us_cod
+  } else if (last==2){
+    last = 1
+    new_us_cod <- paste0(first,last)
+    new_us_cod
+  } else {
+    new_us_cod <- paste0(first,as.numeric(last)+1)
+    new_us_cod
+  }
+}
+
+

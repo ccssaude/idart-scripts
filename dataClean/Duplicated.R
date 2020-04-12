@@ -10,11 +10,12 @@ require(dplyr)  ## Este package contem a funcao inner_join
 
 ####################################### Configuracao de Parametros  ###########################################################################
 ###############################################################################################################################################
-wd <- '~/R/iDART/idart-scripts/dataClean/'  ## Configure para qualquer directorio , onde guardas os ficheiros helperFunctions.R  helper_fucntions_idart.R
-                                  ## dataConsistency.R Duplicated.R
+wd <- '~/R/iDART/idart-scripts/dataClean/'      ## Configure para qualquer directorio , onde guardas os ficheiros helperFunctions.R  helper_fucntions_idart.R
+                                                ## dataConsistency.R Duplicated.R
 setwd(wd)
-source('helper_functions_duplicated.R')  ## Carregar funcoes
+source('helper_functions_duplicated.R')          ## Carregar funcoes
 source('nidRelatedFunctions.R')
+source('genericFunctions.R')
 
 ## OpenMRS Stuff - Configuracoes de variaveis de conexao 
 openmrs.user ='esaude'
@@ -45,8 +46,9 @@ con_postgres <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres
 ## Pacientes
 ## Buscar todos pacientes OpenMRS & iDART
 openmrsAllPatients <- getAllPatientsOpenMRS(con_openmrs)
+openmrsAllPatients$identifierSemLetras <- sapply(openmrsAllPatients$identifier, removeLettersFromNid)   
 idartAllPatients <- getAllPatientsIdart(con_postgres)
-
+idartAllPatients$patientidSemLetras <- sapply(idartAllPatients$patientid, removeLettersFromNid)    
 
 ## Pacientes Duplicados Por NID iDART & OpenMRS
 duplicadosOpenmrs <- getDuplicatesPatOpenMRS(con_openmrs)
@@ -70,40 +72,37 @@ logsExecucao <- logsExecucao[0,c(1:5)]
 ##############################################################################################################################################################  
 ############################################ Grupo 1 (G1): Pacientes  duplicados com mesmo uuid    ########################################################### 
                                                                                                                                                   ############ 
-                                                                                                                                                  ############ 
 ## Grupo   (G1.1):  -Pacientes  duplicados no iDART e no OpenMRS, e  tem o mesmo uuid                                                             ############ 
 ## Solucao G1.1-CM                                                                                                                                ############ 
 ## Unir  os paciente no iDART , e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados                           ############ 
-                                                                                                                                                  ############ 
-## Grupo   (G1.2):  -Pacientes  duplicados apenas iDART,  e tem o mesmo uuid                                                                      ############ 
-## Solucao G1.2-CM                                                                                                                                ############
-## Unir  os paciente no iDART , o   paciente preferido e aquele que tiver levantamentos mais actualizados                                         ############ 
-                                                                                                                                                  ############ 
-                                                                                                                                                  ############ 
+##############################################################################################################################################################                                                                                                                                                 ############ 
+## Grupo      (G1.2): Pacientes  duplicados apenas iDART,  e tem o mesmo uuid                                                                     ############ 
+## Solucao G1.2-CM    Unir  os paciente no iDART , o   paciente preferido e aquele que tiver levantamentos mais actualizados                      ############                                                                                                         ############
+##                              
+##############################################################################################################################################################
 ###########################################  Grupo 2 (G2): Pacientes  duplicados  com  uuids diferentes e nomes diferentes ###################################      
                                                                                                                                                   ############ 
-## Grupo   2.1 (G2.1):  -Pacientes  duplicados  no iDART e no OpenMRS com  uuids diferentes e nomes diferentes sendo                              ############ 
+## Grupo   2.1 (G2.1): Pacientes  duplicados  no iDART e no OpenMRS com  uuids diferentes e nomes diferentes sendo                                ############ 
 ##                      que os dois sao abandonos                                                                                                 ############ 
 ## Solucao G2.1:-CC                                                                                                                               ############
-## Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS,  de preferencia: aquele que tiver a data do ult_lev menos recente               ########### 
-## Verificar se o nid tem tamanho 21 (completo) e 2 barrar //                                                                                     ########### 
-############ 
-## Grupo   2.2 (G2.2):  -Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que os dois sao activos                            ############ 
-## Solucao G2.2:   Trocar o nid de um dos pacientes, os dois estao activos, verificar processos clinicos                                          ############ 
+## Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS,  de preferencia: aquele que tiver a data do ult_lev menos recente               ############ 
+##############################################################################################################################################################
+## Grupo   2.2 (G2.2): Pacientes  duplicados  iDART e no OpenMRS com  uuids diferentes e nomes diferentes sendo que os dois sao activos           ############ 
+## Solucao G2.2:-CC    Trocar o nid de um dos pacientes, os dois estao activos, de preferencia aquele que tiver a data do ult_lev menos recente   ############ 
+##                                                                                                                                                ############ 
+##############################################################################################################################################################  
+## Grupo   2.2.1 (G2.2.1):  Pacientes  duplicados  apenas no iDART  com  uuids diferentes e nomes diferentes                                      ############ 
+## Solucao G2.2.1:-CC       Provavelmete um paciente nao existe no OpenMRS, ou e transito, verificar se o uuid deste paciente existe na BD OpenMRS############
+##                          se exisitir buscar comparar os NIDs e actualizar . Se um for Transito modificar o nid do paciente transito            ############ 
+############################################################################################################################################################## 
+## Grupo   2.3 (G2.3):  -Pacientes  duplicados  no iDART e OpenMRS com  uuids diferentes e nomes diferentes sendo que um dos
+##                       pacientes nao e activo                                                                                                   ############ 
+## Solucao (G2.3):-CC    Trocar o nid do paciente que nao e activo                                                                                ############ 
+############################################################################################################################################################## 
                                                                                                                                                   ############ 
-## Grupo   2.3 (G2.3):  -Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que um dos pacientes nao e activo ############################# 
-## Solucao (G2.3) - Trocar o nid do paciente que nao e activo                                                                                     ############ 
-                                                                                                                                                  ############ 
-## Grupo    2.4 (G2.4):  -Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que os dois pacientes ja nao sao activos          ############ 
-## Solucao (G2.4) - Trocar o nid de  um dos pacientes                                                                                             ############ 
-                                                                                                                                                  ############ 
-## Grupo    2.5 (G2.5):  -Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que os um deles nao tem                           ############  
-## estado TARV definido no OpenMRS############ 
-## Solucao (G2.5) - Trocar o nid de  um dos pacientes############ 
-############ 
-## Grupo    2.6 (G2.6):  -Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que o 2 n tem estado TARV ############ 
-## definido no OpenMRS  e sao dups no OpenMRS
-## Solucao (G2.6) - Trocar o nid de  um dos pacientes  no OpenMRS e o correspondente no iDART############ 
+## Grupo    2.4 (G2.4):  Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que os dois pacientes ja nao sao activos           ############ 
+## Solucao  G2.4:CC -     Trocar o nid de  um dos pacientes  de preferencia o que tiver a data de lev menos recente                               ############ 
+#############################################################################################################################################################
 ############ 
 ## Grupo   2.7 (G1.7):  -Pacientes com mesmo uuid iDART/OpenMRS mas os NIDs sao diferentes############ 
 ## Solucao G2.7-CC   Actualizar o NID no iDART , copiar do OpenMRS
@@ -114,7 +113,7 @@ logsExecucao <- logsExecucao[0,c(1:5)]
 ## https://cran.r-project.org/web/packages/stringdist/stringdist.pdf pag 19 & https://pt.wikipedia.org/wiki/Dist%C3%A2ncia_de_Jaro-Winkler        ############    
                                                                                                                                                   ############
 ## Grupo   3.1 (G3.1):  -Pacientes  duplicados no iDART e no OpenMRS , com nomes semelhantes                                                      ############        
-## Solucao 3.1 (G3.1):  Unir  os paciente no iDART , e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados      ############ 
+## Solucao 3.1:-CM (G3.1):  Unir  os paciente no iDART , e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados      ############ 
                                                                                                                                                   ############ 
 ################################  Grupo 4 (G4): Pacientes  Triplicados############                                                                ############ 
                                                                                                                                                   ############ 
@@ -134,283 +133,140 @@ nidsAllDupsPatients <- unique(dups_idart_openmrs$patientid)
 for (i in 1:length(nidsAllDupsPatients)) {
  
    nid_duplicado <- nidsAllDupsPatients[i]
-  
    index <- which(dups_idart_openmrs$patientid==nid_duplicado)
-   df_temp <- dups_idart_openmrs[index,]
+
   
   if(length(index)==2){
     
     if(dups_idart_openmrs$uuid[index[1]] == dups_idart_openmrs$uuid[index[2]] ){  ## Grupo 1 (G1)
-      
-      # Verificar se e duplicado no OpenMRS 
-      if(dups_idart_openmrs$uuid[index[1]] %in% duplicadosOpenmrs$uuid){
         # Solucao Grupo 1 (G1.1)
-        solucao <- "G1.1-CM -  Unir  os paciente no iDART e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados"
-        dups_idart_openmrs$solucao[index[1]] <- solucao
-        dups_idart_openmrs$solucao[index[2]] <- solucao
-      } else
-      {
-        # nao e duplicado no OpenMRS
-        # Solucao Grupo 1.2 (G1.2)
-        solucao <- "G1.2-CM - Unir  os paciente no iDART , o   paciente preferido e aquele que tiver levantamentos mais actualizados"
-        dups_idart_openmrs$solucao[index[1]] <- solucao       
-        dups_idart_openmrs$solucao[index[2]] <- solucao
-      }
-      
-      
+        solucao <- paste0("G1.1-CM  Unir  os paciente com o NID: ", dups_idart_openmrs$patientid[index[1]] , "no iDART e no OpenMRS")
+        logSolucao(index[1],index[2] ,solucao)  
+        logAction(composePatientToUpdate(index[1],df = dups_idart_openmrs),solucao  )
     } 
     
     else { 
-      ## Grupo 2 (G2)
-      #  avaliar o grau de simetria dos nomes , para saber se trata-se do mesmo paciente 
-      
+
       nome_pat_1 <- dups_idart_openmrs$full_name[index[1]]
       nome_pat_2 <- dups_idart_openmrs$full_name[index[2]]
-      
-      uuid_pat_1 <- dups_idart_openmrs$uuid[index[1]]
-      uuid_pat_2 <- dups_idart_openmrs$uuid[index[2]]
-      openmrs_patient_id <- dups_idart_openmrs$id[index[1]]
-      openmrs_patient_id <- dups_idart_openmrs$id[index[2]]
+  
       estado_tarv_1 <- dups_idart_openmrs$estado_tarv[index[1]]
       estado_tarv_2 <- dups_idart_openmrs$estado_tarv[index[2]]
-      
+      #################################    Grupo 2 (G2)   ###########################################
+      #  Avaliar o grau de simetria dos nomes , para saber se trata-se do mesmo paciente 
+      #Algoritimo  de simetria de strings com o method :  Jaro-Winker distance (eficiente para comparacao de nomes)
       if(stringdist(nome_pat_1,nome_pat_2, method = "jw") > 0.1){     # Grupo 2 (G2)
                                                                       #s e o rsultado de stringdist for:
                                                                       # 0 - perfect match, 0.1 - minimo aceitavel definido, 1 - no match at al
         if(! (is.na(estado_tarv_1) | is.na(estado_tarv_2)) ) {
           
-        if(estado_tarv_1 == estado_tarv_2 & estado_tarv_2=='ABANDONO')        { 
-          # Grupo 2.1 (G2.1) Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que os dois sao abandonos 
+         # Grupo 2.1 (G2.1) Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que os dois sao abandonos 
+         # Solucao G2.1:-CC  
+        if(estado_tarv_1 == estado_tarv_2 & estado_tarv_2=='ABANDONO'){ 
           
-          if(nid_duplicado %in% duplicadosOpenmrs$Nid){
+               patient_to_update <- getPacLevMenosRecente(index,nid = nid_duplicado)
+               new_nid <- getNewNid(patient_to_update[3])  
+               solucao <- paste0("G2.1:CC - Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS,  de preferencia: ", patient_to_update[3], " por ser abandono e  ter a data do ult lev menos recente")
+               logSolucao(index[1],index[2] ,solucao)  
+               beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,con_openmrs,con_postgres)
+
+          }  
+        else if(estado_tarv_1 != estado_tarv_2 &  'ACTIVO NO PROGRAMA' %in%  c(estado_tarv_1,estado_tarv_2)){ 
           
-          pac_lev_menos_rec <- getPacLevMenosRecente(index,nid_duplicado)[3]
-          solucao <- paste0("G2.1 - Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS,  de preferencia: ", pac_lev_menos_rec, " por ter a data do ult lev menos recente")
-          dups_idart_openmrs$solucao[index[1]] <- solucao      
-          dups_idart_openmrs$solucao[index[2]] <- solucao
-          # Solucao G2.1:-CC  TODO
-          if(checkNidFormat(nid_duplicado)){
-            if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-      
-              
-            }
-          } 
+          ## Grupo   2.2 (G2.2):  -Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que os dois sao activos                      
+          ## Solucao G2.2:-CC      Trocar o nid de um dos pacientes, os dois estao activos                   
+          
+          if( 'TRANSFERIDO DE' %in%  c(estado_tarv_1,estado_tarv_2)){  
+            
+            patient_to_update <- getPacLevMenosRecente(index,nid = nid_duplicado)
+            new_nid <- getNewNid(patient_to_update[3])  
+    
+            solucao <- paste0("G2.2:CC - Pacientes duplicados no iDART e OpenMRS, os 2 sao activos, Trocar o nid  :", patient_to_update[3],  ", por ter  a data do ult_lev menos recente") 
+            logSolucao(index[1],index[2],solucao)
+            beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,con_openmrs,con_postgres)
           }
-        } 
-        else  if(estado_tarv_1 != estado_tarv_2 &  'ACTIVO NO PROGRAMA' %in%  c(estado_tarv_1,estado_tarv_2)){ 
-          
-          if( 'TRANSFERIDO DE' %in%  c(estado_tarv_1,estado_tarv_2)){  # Solucao (G2.2) - Os dois pacientes estao activos em tarv 
-            
-            if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-              
-            solucao <- paste0("G2.2 - Pacientes duplicados no iDART e OpenMRS, Trocar o nid de um dos pacientes,  verificar processos clinicos") 
-            dups_idart_openmrs$solucao[index[1]] <- solucao     
-            dups_idart_openmrs$solucao[index[2]] <- solucao 
-            } else {
-              
-              solucao <- paste0("G2.2 - Trocar o nid de um dos pacientes,  verificar processos clinicos") 
-              dups_idart_openmrs$solucao[index[1]] <- solucao     
-              dups_idart_openmrs$solucao[index[2]] <- solucao 
-            }
-            
-            
-          } 
           else {
-            if(estado_tarv_1== 'ACTIVO NO PROGRAMA'){  # Grupo 2.3 (G2.3):  -Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que um dos pacientes nao e activo
-              if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-              idex <-which(dups_idart_openmrs$estado_tarv==estado_tarv_2 & dups_idart_openmrs$patientid==nid_duplicado)
-              nome_pat_nao_activo <- dups_idart_openmrs$full_name[idex]
-              
-              solucao <- paste0("G2.3 - Trocar no OpenMRS e iDART o  nid do paciente : ", nome_pat_nao_activo, " , ele nao e activo em tarv")
-              dups_idart_openmrs$solucao[index[1]] <- solucao      
-              dups_idart_openmrs$solucao[index[2]] <- solucao
-              
-              } 
-              else {
-                idex <-which(dups_idart_openmrs$estado_tarv==estado_tarv_2 & dups_idart_openmrs$patientid==nid_duplicado)
-                nome_pat_nao_activo <- dups_idart_openmrs$full_name[idex]
-                
-                solucao <- paste0("G2.3 - Trocar o nid do paciente : ", nome_pat_nao_activo, " ,  ele nao e activo em tarv")
-                dups_idart_openmrs$solucao[index[1]] <- solucao      
-                dups_idart_openmrs$solucao[index[2]] <- solucao
-              }
-            } 
-            else {
-               ## 
-              if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-              idex <-which(dups_idart_openmrs$estado_tarv==estado_tarv_1 & dups_idart_openmrs$patientid==nid_duplicado)
-              nome_pat_transf <- dups_idart_openmrs$full_name[idex]
-              
-              solucao <- paste0("G2.3 - Trocar o nid de um dos pacientes no OpenMRS e iDART de preferencia: ", nome_pat_transf, " , ele nao e activo em tarv")
-              dups_idart_openmrs$solucao[index[1]] <- solucao      
-              dups_idart_openmrs$solucao[index[2]] <- solucao
-              } else {
-                idex <-which(dups_idart_openmrs$estado_tarv==estado_tarv_1 & dups_idart_openmrs$patientid==nid_duplicado)
-                nome_pat_transf <- dups_idart_openmrs$full_name[idex]
-                
-                solucao <- paste0("G2.3 - Trocar o nid de um dos pacientes de preferencia: ", nome_pat_transf, " , ele nao e activo em tarv")
-                dups_idart_openmrs$solucao[index[1]] <- solucao      
-                dups_idart_openmrs$solucao[index[2]] <- solucao
-                
-              }
-              
-              
-            }
-            
-            
-          
-          
-        }
+             # Grupo 2.3 (G2.3):  -Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que um dos pacientes nao e activo
+              patient_to_update <- getPacInactivo(index,nid = nid_duplicado)
+              new_nid <- getNewNid(patient_to_update[3])  
+              solucao <- paste0("G2.3:-CC - Trocar no OpenMRS e iDART o  NID do paciente:", patient_to_update[3],  "  ele nao e activo em tarv nesta US")
+              logSolucao(index[1],index[2],solucao)
+              beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,con_openmrs,con_postgres)
           }
+        }
         else  if(estado_tarv_1 == estado_tarv_2 &  'ACTIVO NO PROGRAMA' %in%  c(estado_tarv_1,estado_tarv_2)){
-          
-          if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-            
-            solucao <- paste0("G2.2 - Pacientes duplicados no iDART e OpenMRS, Trocar o nid de um dos pacientes,  verificar processos clinicos") 
-            dups_idart_openmrs$solucao[index[1]] <- solucao     
-            dups_idart_openmrs$solucao[index[2]] <- solucao 
-          } else {
-            
-            solucao <- paste0("G2.2 - Trocar o nid de um dos pacientes,  verificar processos clinicos") 
-            dups_idart_openmrs$solucao[index[1]] <- solucao     
-            dups_idart_openmrs$solucao[index[2]] <- solucao 
+          #Solucao G2.2:-CC    Trocar o nid de um dos pacientes, os dois estao activos, de preferencia aquele que tiver a data do ult_lev menos recente
+          patient_to_update <- getPacLevMenosRecente(index,nid = nid_duplicado)
+          new_nid <- getNewNid(patient_to_update[3])  
+          solucao <- paste0("G2.2:-CC  - Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS,  de preferencia: ", patient_to_update[3], " por ser abandono e  ter a data do ult lev menos recente")
+          logSolucao(index[1],index[2] ,solucao)  
+          beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,con_openmrs,con_postgres)
+      
           }
+        else {
           
-        }
-           else  {
-          
-          if(  'TRANSFERIDO DE' %in%  c(estado_tarv_1,estado_tarv_2)){
-               if(estado_tarv_1=='TRANSFERIDO DE'){
-                 if(nid_duplicado %in% duplicadosOpenmrs$Nid){ 
-                 idex <-which(dups_idart_openmrs$estado_tarv==estado_tarv_2 & dups_idart_openmrs$patientid==nid_duplicado)
-                 nome_pat_nao_activo <- dups_idart_openmrs$full_name[idex]
-                 solucao <- paste0("G2.3 - Trocar o nid de um dos pacientes no OpenMRS e iDART de preferencia: ", nome_pat_nao_activo, " por ter saido do Tarv")
-                 dups_idart_openmrs$solucao[index[1]] <- solucao 
-                 dups_idart_openmrs$solucao[index[2]] <- solucao 
-               } 
-               else{
-                 idex <-which(dups_idart_openmrs$estado_tarv==estado_tarv_2 & dups_idart_openmrs$patientid==nid_duplicado)
-                 nome_pat_nao_activo <- dups_idart_openmrs$full_name[idex]
-                 solucao <- paste0("G2.3 - Trocar o nid de um dos pacientes no iDART de preferencia: ", nome_pat_nao_activo, " por ter saido do Tarv")
-                 dups_idart_openmrs$solucao[index[1]] <- solucao 
-                 dups_idart_openmrs$solucao[index[2]] <- solucao 
+          if('TRANSFERIDO DE' %in%  c(estado_tarv_1,estado_tarv_2)){
+            
+                 
+                 patient_to_update <- getPacInactivo(index,nid = nid_duplicado)
+                 new_nid <- getNewNid(patient_to_update[3])  
+                 solucao <- paste0("G2.3:CC - Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS,  de preferencia: ", patient_to_update[3], " por ter saido do Tarv")
+                 logSolucao(index[1],index[2] ,solucao)  
+                 beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,con_openmrs,con_postgres)
+               
+          } 
+          else{
+
+                 ## Solucao  G2.4:CC -     Trocar o nid de  um dos pacientes  de preferencia o que tiver a data de lev menos recente    
+                 patient_to_update <- getPacLevMenosRecente(index,nid = nid_duplicado)
+                 new_nid <- getNewNid(patient_to_update[3])  
+                 solucao <- paste0("G2.2:-CC  - Trocar o nid  : ", patient_to_update[3], " por nao ser activo e ter a data do ult lev menos recente")
+                 logSolucao(index[1],index[2] ,solucao)  
+                 beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,con_openmrs,con_postgres)
                  
                }
             
-          }}
-          else { ## Ambos pacientes ja nao fazem tarv, trocar o nid de qualquer um dos 2
-            
-            # Solucao (G2.4) - Os dois pacientes nao estao activos em tarv 
-            if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-              solucao <- paste0("G2.4 - Trocar o nid de um dos pacientes no OpenMRS e  o Seu correspondente no iDART, os dois nao estao activos") 
-              dups_idart_openmrs$solucao[index[1]] <- solucao 
-              dups_idart_openmrs$solucao[index[2]] <- solucao 
-            } else {
-              
-              solucao <- paste0("G2.4 - Trocar o nid de um dos pacientes no iDART, os dois nao estao activos") 
-              dups_idart_openmrs$solucao[index[1]] <- solucao 
-              dups_idart_openmrs$solucao[index[2]] <- solucao 
-              
+          }
+           
             }
+        else if(is.na(estado_tarv_1) | is.na(estado_tarv_2))  {
+          ## Grupo   2.3 (G2.3):  -Pacientes  duplicados  no iDART e OpenMRS com  uuids diferentes e nomes diferentes sendo que um dos
+          ##                       pacientes nao e activo   
+          # Solucao (G2.3):-CC Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS
+          patient_to_update <- getPacInactivo(index,nid = nid_duplicado)
+          new_nid <- getNewNid(patient_to_update[3])  
+          solucao <- paste0("G2.3:-CC - Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS,  de preferencia: ", patient_to_update[3], "por ser inactivo")
+          logSolucao(index[1],index[2] ,solucao)  
+          beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,con_openmrs,con_postgres)
             
-            
-          }
-
-          }
-        
         }
-        else { 
-            
-          if( (is.na(estado_tarv_1) | is.na(estado_tarv_2)) ) {
-            
-            if(is.na(estado_tarv_1)){
-              
-              if(estado_tarv_2 %in% c('ABANDONO','TRANSFERIDO PARA','OBITO')){
-                # Verificar se e duplicado no OpenMRS  haha
-                if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-                  idex <-which(dups_idart_openmrs$estado_tarv==estado_tarv_2 & dups_idart_openmrs$patientid==nid_duplicado)
-                  nome_pat_saiu<- dups_idart_openmrs$full_name[idex]
-                  
-                  solucao <- paste0("G2.5-  Trocar no OpenMRS e o correspondente no iDART o nid do Paciente: ",nome_pat_saiu," Pois, ja nao esta a fazer o tratamento")
-                  dups_idart_openmrs$solucao[index[1]] <- solucao
-                  dups_idart_openmrs$solucao[index[2]] <- solucao
-                } 
-                else {
-                  
-                  
-                  solucao <- paste0("G2.5-  Trocar no   iDART o nid do Paciente: ",nome_pat_saiu," Pois, ja nao esta a fazer o tratamento")
-                  dups_idart_openmrs$solucao[index[1]] <- solucao
-                  dups_idart_openmrs$solucao[index[2]] <- solucao
-                }
-              
-                
-              }
-              else { # TODO codigo de 2 pacientes sem estados
-                } 
-              }             
-            else {
-                
-                if(estado_tarv_1 %in% c('ABANDONO','TRANSFERIDO PARA','OBITO')){
-                  # Verificar se e duplicado no OpenMRS  haha
-                  if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-                    idex <-which(dups_idart_openmrs$estado_tarv==estado_tarv_1 & dups_idart_openmrs$patientid==nid_duplicado)
-                    nome_pat_saiu<- dups_idart_openmrs$full_name[idex]
-                    
-                    solucao <- paste0("G2.5-  Trocar no OpenMRS e o correspondente no iDART o nid do Paciente: ",nome_pat_saiu," Pois, ja nao esta a fazer o tratamento")
-                    dups_idart_openmrs$solucao[index[1]] <- solucao
-                    dups_idart_openmrs$solucao[index[2]] <- solucao
-                  } else {
-                    
-                    
-                    solucao <- paste0("G2.5-  Trocar no   iDART o nid do Paciente: ",nome_pat_saiu," Pois, ja nao esta a fazer o tratamento")
-                    dups_idart_openmrs$solucao[index[1]] <- solucao
-                    dups_idart_openmrs$solucao[index[2]] <- solucao
-                  }
-                
-                
-              }
-                else {
-                # estad_tarv_1 e transferido de 
-                # Verificar se e duplicado no OpenMRS  
-                if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-                  # Solucao (G2.5) - Um dos  pacientes nao tem estado no programa TARV  OpenMRS
-                  solucao <- "G2.5-  Trocar o nid de  um dos pacientes  no OpenMRS e o correspondente no iDART"
-                  dups_idart_openmrs$solucao[index[1]] <- solucao
-                  dups_idart_openmrs$solucao[index[2]] <- solucao
-                } else
-                  # Solucao (G2.5) - Um dos  pacientes nao tem estado no programa TARV  OpenMRS
-                  solucao <- paste0("G2.5 - Trocar o nid de um dos pacientes no iDART") 
-                  dups_idart_openmrs$solucao[index[1]] <- solucao   
-                 dups_idart_openmrs$solucao[index[2]] <- solucao
-              }
-                
-                
-              }
-            }
-
-          }
-        
+        else{
+          #TODO nhuhm dos estados anteriores
+          
         }
-      else {  #  Nomes sao semelhantes , podemos assumir que trata-se do mesmo pacientes
+            
+      }
+      else { 
+         #  Nomes sao semelhantes , podemos assumir que trata-se do mesmo pacientes
         
-          # Verficar se sao duplicados no openmrs 
-          # Grupo   3.1 (G3.1):  -Pacientes  duplicados no iDART e no OpenMRS , com nomes semelhantes
-          # priorizar o que tiver levantamentos mais actualizados
-          # if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-          # Solucao Grupo 3.1 (G3.1)
-          nome_lev_mais_act <- getPacLevMaisRecente(index,nid_duplicado)
-          solucao <- paste0("G3.1 - Unir  os paciente ",nome_pat_1," e ",nome_pat_2, " no iDART e no OpenMRS. Paciente com nome: ",
-                            nome_lev_mais_act, " e preferido por ter a data do ult lev mais recente")
-          dups_idart_openmrs$solucao[index[1]] <- solucao  
-          dups_idart_openmrs$solucao[index[2]] <- solucao
+          ## Verficar se sao duplicados no openmrs 
+          ## Grupo   3.1 (G3.1):  -Pacientes  duplicados no iDART e no OpenMRS , com nomes semelhantes
+          ## Solucao G3.1:-CM (G3.1):  Unir  os paciente no iDART , e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados
+         
+  
+         patient_to_update <- getPacLevMaisRecente(index,nid = nid_duplicado)
+         new_nid <- getNewNid(patient_to_update[3])  
+         solucao <- paste0("G3.1:-CM  -  Unir  os paciente no  nid  : ", patient_to_update[3], " o paciente preferido e aquele que tiver levantamentos mais actualizados")
+         logSolucao(index[1],index[2] ,solucao)  
+         beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,con_openmrs,con_postgres)
+         
           
     
         
       }
     
-  }
-  }
-  
+      }
+    }
   else if(length(index)==3){   # Grupo G4
     
     if(dups_idart_openmrs$uuid[index[1]] == dups_idart_openmrs$uuid[index[2]] ){ 
@@ -473,12 +329,10 @@ for (i in 1:length(nidsAllDupsPatients)) {
       
   }
     
- # else{}  caso de pacientes quadriplicados
   
   }
     
-    
-  
+
 
 
 
