@@ -169,8 +169,8 @@ for (i in 1:length(nidsAllDupsPatients)) {
       
       uuid_pat_1 <- dups_idart_openmrs$uuid[index[1]]
       uuid_pat_2 <- dups_idart_openmrs$uuid[index[2]]
-      id_pat_1 <- dups_idart_openmrs$id[index[1]]
-      id_pat_2 <- dups_idart_openmrs$id[index[2]]
+      openmrs_patient_id <- dups_idart_openmrs$id[index[1]]
+      openmrs_patient_id <- dups_idart_openmrs$id[index[2]]
       estado_tarv_1 <- dups_idart_openmrs$estado_tarv[index[1]]
       estado_tarv_2 <- dups_idart_openmrs$estado_tarv[index[2]]
       
@@ -191,8 +191,7 @@ for (i in 1:length(nidsAllDupsPatients)) {
           # Solucao G2.1:-CC  TODO
           if(checkNidFormat(nid_duplicado)){
             if(nid_duplicado %in% duplicadosOpenmrs$Nid){
-              
-              
+      
               
             }
           } 
