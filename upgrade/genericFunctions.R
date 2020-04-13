@@ -134,12 +134,11 @@ insertRegimeTerapeutico <- function(postges.con, regime.id ,regime.esquema,activ
   dbExecute(
     postges.con,
     paste0(
-      "INSERT INTO public.regimeterapeutico( regimeid, regimeesquema, active, codigoregime, regimenomeespecificado) VALUES (",
+      "insert into  public.regimeterapeutico( regimeid, regimeesquema, active, codigoregime,  regimenomeespecificado) VALUES (",
       regime.id,
       ", '",
       regime.esquema,
       "' ,",
-      " ",
       active,
       " , '",
       cod.regime,

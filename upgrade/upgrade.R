@@ -1,9 +1,10 @@
 # Packages que contem algumas funcoes a serem usadas 
 require(RMySQL)
 require(RPostgreSQL)
-require(openssl)
-require(plyr)
-require(dplyr)
+require(openssl)  ## instalar com install.packages("openssl")
+require(plyr)     ## instalar com install.packages("plyr")
+require(dplyr)    ## instalar com install.packages("dplyr")
+require(readr)    ## instalar com install.packages("readr")
 ####################################### Configuracao de Parametros  #####################################################################
 #########################################################################################################################################
 wd <- '~/R/iDART/idart-scripts/upgrade/'  
@@ -31,6 +32,8 @@ postgres.port=5432
 # Objecto de connexao com a bd openmrs postgreSQL
 con_postgres <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres.password, dbname = postgres.db.name,host = postgres.host)
 ############################################################################################################################################
+
+## 1 --  Primeiro executar o script com alteracoes atraves do pg admin
 
 # Deve-se mudar o nome de Clinic name , StockCenter name no iDART de modo a ser igual ao default_location  no openmrs
 new_clinic_name  <- getOpenmrsDefaultLocation(con_openmrs)
@@ -66,6 +69,8 @@ load(file = 'regimes.RDATA')
 regimes_terap <- regimes_terap[regimes_terap$active == TRUE,  ]
 regimes_terap <- regimes_terap[order(regimes_terap$regimeesquema), ]
 
+
+
 ## Compara os regimes existentes com os regimes  Padronizados e faz actualizacao.
 ## Para cada regime  padronizado que nao existe faz uma insercao
 
@@ -96,7 +101,7 @@ for (i in 1:dim(regimes_padronizados)[1]) {
     regime_esquema <- regimes_padronizados$regimeesquema[i]
     regimenomeespecificado <- regimes_padronizados$regimenomeespecificado[i]
     
-    insertRegimeTerapeutico(con.postgres = con_postgres,regime.id =  regimeid,cod.regime = cod_regime, regime.esquema = regime_esquema,active = TRUE, regimenopespecificado = regimenomeespecificado)
+    insertRegimeTerapeutico(con_postgres,regimeid , regime_esquema,cod_regime,active = TRUE,  regimenomeespecificado)
     
   }
 
@@ -105,11 +110,9 @@ for (i in 1:dim(regimes_padronizados)[1]) {
 
 
 
-regimes_padronizados = add_row(regimes_padronizados,regimeid=max(regimes_terap$regimeid)+15, regimeesquema='TDF+ABC+3TC+LPV/r',active=TRUE,codigoregime='1',regimenomeespecificado='71fd3c9a-8e9c-4f1f-ad85-4f979e59dbd1')
-
-
 dbExecute(con_postgres,sql_desactiva_regimes_sem_uuid)
 dbExecute(con_postgres,sql_update_cod_regime_null )
+dbExecute(con_postgres,sql_update_admin_md5 )
 
 # Actualiza a tabela doctor e as prescricoes 
 clinico_generico_id = getLastDoctorID(con_postgres) + 5

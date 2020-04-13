@@ -5,6 +5,7 @@ sql_regimes <- "SELECT * from public.regimeterapeutico "
 sql_desactiva_regimes_sem_uuid <- "update public.regimeterapeutico set active =FALSE where regimenomeespecificado ='';   "
 sql_update_uuid_openmrs <- "update  public.patient  set  uuidopenmrs = uuid;"
 sql_update_cod_regime_null <- "UPDATE public.regimeterapeutico SET  codigoregime='1'  WHERE codigoregime is null and active =TRUE ;"
+sql_update_admin_md5 <- "update public.users set cl_password  = 'd77514df1110538dc26519b854b1788f' , permission = 'A' where cl_username='admin' ;"
 
 sql_update_nid_patient_identifier <- "update public.patientidentifier as pi
 set value = p.patientid
