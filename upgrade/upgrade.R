@@ -15,10 +15,10 @@ source('genericFunctions.R')
 ## OpenMRS Stuff - Configuracoes de variaveis de conexao 
 openmrs.user ='esaude'
 openmrs.password='esaude'
-openmrs.db.name='1maio'
-openmrs.host='127.0.0.2'
-openmrs.port=3333
-us.code= '0111030701' # modificar este parametro para cada US. Este e o Cod da US definido pelo MISAU e geralmente e a primeira parte do NID
+openmrs.db.name='junho'
+openmrs.host='172.17.0.2'
+openmrs.port=3306
+#us.code= '0111040601' # CS 1 junho# modificar este parametro para cada US. Este e o Cod da US definido pelo MISAU e geralmente e a primeira parte do NID
 # Objecto de connexao com a bd openmrs
 con_openmrs = dbConnect(MySQL(), user=openmrs.user, password=openmrs.password, dbname=openmrs.db.name, host=openmrs.host, port=openmrs.port)
 
@@ -26,8 +26,8 @@ con_openmrs = dbConnect(MySQL(), user=openmrs.user, password=openmrs.password, d
 # iDART Stuff - Configuracoes de variaveis de conexao 
 postgres.user ='postgres'
 postgres.password='postgres'
-postgres.db.name='maio'
-postgres.host='127.0.0.3'
+postgres.db.name='junho'
+postgres.host='172.17.0.4'
 postgres.port=5432
 # Objecto de connexao com a bd openmrs postgreSQL
 con_postgres <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres.password, dbname = postgres.db.name,host = postgres.host)
@@ -44,20 +44,38 @@ stockcenter_name <- getIdartStockCenterName(con_postgres)
 
 
 ## Update facility name , stockcenter name clinic name
-dbExecute(  con_postgres,  paste0("  update public.nationalclinics set facilityname = '",new_clinic_name,"' where facilityname = '",idart_clinic_name,"';"))
+status <- dbExecute(  con_postgres,  paste0("  update public.nationalclinics set facilityname = '",new_clinic_name,"' where facilityname = '",idart_clinic_name,"';"))
+if(status>1){
+  message('facilityname Actualizado com Sucesso')
+  }else {
+  message('Nao foi possivel inserir o facilityname no iDART Insira manualmente')
+  
+}
 
-dbExecute(con_postgres,  paste0("update public.clinic    set clinicname = '",new_clinic_name,"' where clinicname = '",facility_name,"';"))
 
-dbExecute(  con_postgres,  paste0("update public.stockcenter    set stockcentername = '",new_clinic_name,"' where stockcentername = '",stockcenter_name,"';"))
+status <- dbExecute(con_postgres,  paste0("update public.clinic    set clinicname = '",new_clinic_name,"' where clinicname = '",facility_name,"';"))
+if(status>1){
+  message('clinicname Actualizado com Sucesso')
+}else {
+  message('Nao foi possivel inserir o clinicname no iDART Insira manualmente')
+  
+}
+ 
 
+status <-  dbExecute(  con_postgres,  paste0("update public.stockcenter    set stockcentername = '",new_clinic_name,"' where stockcentername = '",stockcenter_name,"';"))
+if(status>1){
+  message('stockcentername Actualizado com Sucesso')
+}else {
+  message('Nao foi possivel inserir o stockcentername no iDART Insira manualmente')
+  
+}
 # Actualiza uuidopenmrs para ser igual a uuid (set uuidopenmrs=uuid)
-
 dbExecute(con_postgres, sql_update_uuid_openmrs)
 
 # Actualiza Nids da tabela patientidentifier de modo a serem iguais aos Nids do Patient  
 dbExecute(con_postgres, sql_update_nid_patient_identifier)
 
-#   Buscar os regimes Terapeuticos
+#   Buscar os regimes Terapeuticos na BD iDART
 regimes_terap <- getRegimesTerapeuticos(con_postgres)
 
 ### Carrega a tabela/dataframe dos  Regimes Padronizados 
@@ -72,9 +90,7 @@ regimes_terap <- regimes_terap[order(regimes_terap$regimeesquema), ]
 
 
 ## Compara os regimes existentes com os regimes  Padronizados e faz actualizacao.
-## Para cada regime  padronizado que nao existe faz uma insercao
-
-
+## Se o regime nao exite no iDART Faz-se uma insercao
 
 for (i in 1:dim(regimes_padronizados)[1]) {
   
@@ -109,15 +125,18 @@ for (i in 1:dim(regimes_padronizados)[1]) {
 }
 
 
-
+## Apos padronizacao desactiva regimes sem uuid
 dbExecute(con_postgres,sql_desactiva_regimes_sem_uuid)
+
+## iDART exige que tods regimes activos tenham o campo  codregime,
+## este cog garante nehum regim tenha codrigme vazio ( situacoes raras)
+
+
 dbExecute(con_postgres,sql_update_cod_regime_null )
 dbExecute(con_postgres,sql_update_admin_md5 )
 
-# Actualiza a tabela doctor e as prescricoes 
-clinico_generico_id = getLastDoctorID(con_postgres) + 5
 
-dbExecute(con_postgres,paste0(" INSERT INTO public.doctor(id, emailaddress, firstname, lastname, mobileno, modified, telephoneno, active, category) values (", clinico_generico_id ," , '' , 'Clinico', 'Generico', '', 'T', '', 
-            TRUE, 0); " ))
 
-dbExecute(con_postgres,paste0(" UPDATE public.prescription  SET doctor= " ,clinico_generico_id, " WHERE doctor != ",clinico_generico_id, " ;"))
+insertGenericProvider(con_postgres)
+
+

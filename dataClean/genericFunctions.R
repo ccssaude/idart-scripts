@@ -1,4 +1,131 @@
 require(plyr)
+#' Busca todos pacientes do OpenMRS
+#' 
+#' @param con.postgres  obejcto de conexao com BD OpenMRS
+#' @return tabela/dataframe/df com todos paciente do OpenMRS 
+#' @examples patients_idart <- getAllPatientsIdart(con_openmrs)
+getAllPatientsOpenMRS <- function(con.openmrs) {
+  rs  <-
+    dbSendQuery(
+      con.openmrs,
+      paste0(
+        "
+
+      SELECT   
+        pat.patient_id, 
+        pid.identifier , 
+        pe.uuid,
+        lower(pn.given_name) given_name ,
+        lower(pn.middle_name) middle_name,
+        lower(pn.family_name) family_name,
+        concat(lower(pn.given_name),' ' ,if(lower(pn.middle_name) is not null,concat( lower(pn.middle_name), ' ') ,' '),lower(pn.family_name)) as full_name_openmrs ,
+        pe.birthdate,
+        estado.estado as estado_tarv ,
+        max(estado.start_date) data_estado,
+        date(visita.encounter_datetime) as data_ult_levant,
+        date(visita.value_datetime) as data_prox_marcado
+        FROM  patient pat INNER JOIN  patient_identifier pid ON pat.patient_id =pid.patient_id
+        INNER JOIN person pe ON pat.patient_id=pe.person_id
+        INNER JOIN person_name pn ON pe.person_id=pn.person_id and    pn.voided=0 and pid.preferred=1
+        LEFT JOIN
+      		(
+      			SELECT 	pg.patient_id,ps.start_date encounter_datetime,location_id,ps.start_date,ps.end_date,
+      					CASE ps.state
+                              WHEN 6 THEN 'ACTIVO NO PROGRAMA'
+      						WHEN 7 THEN 'TRANSFERIDO PARA'
+      						WHEN 8 THEN 'SUSPENSO'
+      						WHEN 9 THEN 'ABANDONO'
+      						WHEN 10 THEN 'OBITO'
+                              WHEN 29 THEN 'TRANSFERIDO DE'
+      					ELSE 'OUTRO' END AS estado
+      			FROM 	patient p
+      					INNER JOIN patient_program pg ON p.patient_id=pg.patient_id
+      					INNER JOIN patient_state ps ON pg.patient_program_id=ps.patient_program_id
+      			WHERE 	pg.voided=0 AND ps.voided=0 AND p.voided=0 AND
+      					pg.program_id=2 AND ps.state IN (6,7,8,9,10,29) AND ps.end_date IS NULL
+      
+      
+      		) estado ON estado.patient_id=pe.person_id
+       LEFT Join
+           (
+      		Select ult_levantamento.patient_id,ult_levantamento.encounter_datetime,o.value_datetime
+      		from
+      
+      			(	select 	p.patient_id,max(encounter_datetime) as encounter_datetime
+      				from 	encounter e
+      						inner join patient p on p.patient_id=e.patient_id
+      				where 	e.voided=0 and p.voided=0 and e.encounter_type=18
+      				group by p.patient_id
+      			) ult_levantamento
+      			inner join encounter e on e.patient_id=ult_levantamento.patient_id
+      			inner join obs o on o.encounter_id=e.encounter_id
+      			where o.concept_id=5096 and o.voided=0 and e.encounter_datetime=ult_levantamento.encounter_datetime and
+      			e.encounter_type =18
+      		) visita  on visita.patient_id=pn.person_id
+      
+          group by pat.patient_id order by     pat.patient_id
+      
+              "
+      )
+    )
+  
+  data <- fetch(rs, n = -1)
+  RMySQL::dbClearResult(rs)
+  return(data)
+  
+}
+
+
+#' Busca todos pacientes do iDART
+#' 
+#' @param con.postgres  obejcto de conexao com BD iDART
+#' @return tabela/dataframe/df com total de  lev por paciente
+#' @examples total_dispensas <- getTotalDeDispensas(con_idart)
+getAllPatientsIdart <- function(con.postgres) {
+  patients  <-
+    dbGetQuery(
+      con.postgres,
+      paste0(
+        "select pat.id, pat.patientid,dateofbirth::TIMESTAMP::DATE as dateofbirth,lower(pat.firstnames) as firstnames , 
+        pat.sex, lower(pat.lastname) as lastname ,pat.uuid,pat.uuidopenmrs, ep.startreason,
+        dispensas.total as totalDispensas
+        from patient pat left join
+        (
+         select patient, max(startdate), startreason
+           from episode
+            group by patient, startreason
+
+        )  ep on ep.patient = pat.id
+
+        left join (
+            select patientid, count(*) as total
+            from packagedruginfotmp
+            group by patientid
+       ) dispensas on dispensas.patientid = pat.patientid;
+
+
+ "
+      )
+    )
+  
+  patients  # same as return(patients)
+  
+}
+
+#' Busca o total de levantamentos de um Paciente no iDART  
+#' TODO -  funcao referencia uma variavel global-- deve se optimizar de modo que seja um parametro
+#' 
+#' @param patient.id id do paciente na tabela  Patient
+#' @param uuid.openmrs uuid do  OpenMRS
+#' @return 0/1  (0) - error  (1) - sucess   
+#' @examples updateUUID(67,  uuid)
+getTotalDeDispensasPorPaciente  <- function(patient.id) {
+  levPaciente  <-
+    dispensasPorPaciente[which(dispensasPorPaciente$id == patient.id), ]
+  
+  levPaciente$totaldispensas
+}
+
 
 #' Escreve  os logs das accoes executadas nas DBs iDART/OpenMRS numa tabela logsExecucao
 #' 
@@ -15,7 +142,6 @@ logAction <- function (patient.info,action){
   
 }
 
-
 #' Compoe um vector com dados do paciente que se vai actualizar
 #' 
 #' @param df tabela de duplicados para extrair os dados do Pat
@@ -33,21 +159,64 @@ composePatientToUpdate <- function(index,df){
   patient
 }
 
-#' Compoe um vector com dados do paciente que se vai actualizar
+#' Compoe um vector com dados do paciente para se utilizar na tabela dos logs
 #' 
-#' @param df tabela de duplicados para extrair os dados do Pat
+#' @param df tabela onde se vai extrair os dados 
+#' pode ser tabela do openmrs/idart/ ou uma composta
 #' @param index row do paciente em causa 
 #' @return vector[id,uuid,patientid,openmrs_patient_id,full.name,index] 
-#' @examples composePatientToUpdate(67, nids_dups)
-composePatientToUpdate <- function(index,df){
+#' @examples composePatientToLog(67, nids_dups)
+composePatientToLog <- function(df,index){
   
   id = df$id[index]
   uuid = df$uuid[index]
   patientid = df$patientid[index]
-  openmrs_patient_id =df$patient_id[index]
-  full.name =  df$full_name[index]
-  patient <- c(id,uuid,patientid,openmrs_patient_id,full.name,index)
+  full_name <- str_replace_na(paste0(df$firstnames[index], ' ',df$lastname[index]),replacement=' ')
+  patient <- c(id,uuid,patientid,full_name)
   patient
+}
+
+#' Actualiza os  uuid e openmrsuuid na tabela Patient
+#' 
+#' @param patient.id id do paciente na tabela  Patient
+#' @param uuid.openmrs uuid do  OpenMRS
+#' @return 0/1  (0) - error  (1) - sucess   
+#' @examples updateUUID(67,  uuid)
+updateUUID <- function (postgres.con, patient.id, uuid) {
+  dbExecute(
+    postgres.con,
+    paste0(
+      "update  public.patient set uuid='",
+      uuid,
+      "' , openmrsuuid='",
+      uuid ,
+      "'  where id = ",
+      patient.id,
+      " ;"
+    )
+  )
+  
+}
+
+
+#' Actualiza os  dados do uuidopenmrs    na tabela Patient
+#' 
+#' @param patient.id id do paciente na tabela  Patient
+#' @param uuid.openmrs uuid do  OpenMRS
+#' @return 0/1  (0) - error  (1) - sucess   
+#' @examples updateUuuispenMRS(67,  uuid)
+updateUuidOpenMRS <- function (patient.id, uuid.openmrs) {
+  dbExecute(
+    con_postgres,
+    paste0(
+      "update  public.patient set uuidopenmrs='",
+      uuid.openmrs,
+      "'  where id = ",
+      patient.id,
+      " ;"
+    )
+  )
+  
 }
 
 
@@ -67,7 +236,7 @@ beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients ,
     if( checkIfExistsNidIdart(new.nid.act,df.idart.patients) ){
       
       new.nid.act <- getNewNid(new.nid.act)
-      status_act_idart <- actualizaNidiDART(con.idart = con.openmrs,patient.to.update =patient_to_update,new.nid = new.nid.act )
+      status_act_idart <- actualizaNidiDART(con.idart = con.idart,patient.to.update =patient_to_update,new.nid = new.nid.act )
       
       if(status_act_idart==1){
         actualizaNidOpenMRS(con.openmrs = con.openmrs,patient.to.update = patient_to_update,new.nid = new.nid.act)
@@ -83,7 +252,7 @@ beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients ,
     }
     else {
       
-      status_act_idart <- actualizaNidiDART(con.idart = con.openmrs,patient.to.update =patient_to_update,new.nid = new.nid.act )
+      status_act_idart <- actualizaNidiDART(con.idart = con_postgres,patient.to.update =patient_to_update,new.nid = new.nid.act )
       
       if(status_act_idart==1){
         actualizaNidOpenMRS(con.openmrs = con.openmrs,patient.to.update = patient_to_update,new.nid = new.nid.act)
@@ -102,3 +271,6 @@ beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients ,
   }
   
 }
+
+
+

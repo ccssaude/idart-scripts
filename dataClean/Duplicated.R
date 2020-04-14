@@ -8,37 +8,42 @@ require(tidyr)
 require(stringdist)
 require(dplyr)  ## Este package contem a funcao inner_join
 
-####################################### Configuracao de Parametros  ###########################################################################
-###############################################################################################################################################
-wd <- '~/R/iDART/idart-scripts/dataClean/'      ## Configure para qualquer directorio , onde guardas os ficheiros helperFunctions.R  helper_fucntions_idart.R
-                                                ## dataConsistency.R Duplicated.R
+####################################### Configuracao de Parametros  #####################################################################
+#########################################################################################################################################
+wd <- '~/R/iDART/idart-scripts/dataClean/'   ## dConfigure para qualquer directorio , e guardar o ficheiro helperFunctions.R neste dir
 setwd(wd)
-source('helper_functions_duplicated.R')          ## Carregar funcoes
-source('nidRelatedFunctions.R')
+
+source('helper_functions_duplicated.R')  ## Carregar funcoes
 source('genericFunctions.R')
+source('nidRelatedFunctions.R')
+
+load(file = 'logsExecucao.R')
+
 
 ## OpenMRS Stuff - Configuracoes de variaveis de conexao 
 openmrs.user ='esaude'
 openmrs.password='esaude'
-openmrs.db.name='1maio'
-openmrs.host='127.0.0.2'
-openmrs.port=3333
-us.code= '0111030701' #(Cod US 1Maio) 
-# modificar este parametro para cada US. Este e o Cod da US definido pelo MISAU e geralmente e a primeira parte do NID
+openmrs.db.name='junho'
+openmrs.host='172.17.0.2'
+openmrs.port=3306
 # Objecto de connexao com a bd openmrs
 con_openmrs = dbConnect(MySQL(), user=openmrs.user, password=openmrs.password, dbname=openmrs.db.name, host=openmrs.host, port=openmrs.port)
+
+
+us.code= '0111040601' # modificar este parametro para cada US. Este e o Cod da US definido pelo MISAU e geralmente e a primeira parte do NID
+
 
 
 # iDART Stuff - Configuracoes de variaveis de conexao 
 postgres.user ='postgres'
 postgres.password='postgres'
-postgres.db.name='maio'
-postgres.host='127.0.0.3'
+postgres.db.name='junho'
+postgres.host='172.17.0.4'
 postgres.port=5432
 # Objecto de connexao com a bd openmrs postgreSQL
 con_postgres <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres.password, dbname = postgres.db.name,host = postgres.host)
 
-
+############################################################################################################################################
 ############################################################################################################################################
 ############################################################################################################################################
 
@@ -60,10 +65,6 @@ duplicadosiDART <-   getDuplicatesPatiDART(con_postgres)
 # Cruzar duplicados iDART  com dados do openmrs
 dups_idart_openmrs <- inner_join(duplicadosiDART,openmrsAllPatients, by=c("uuid"))
 dups_idart_openmrs$solucao <- ""
-#  Cria a tabela de logs
-logsExecucao <- dups_idart_openmrs[1,c(1,2,4,8 )]
-logsExecucao$accao <- ""
-logsExecucao <- logsExecucao[0,c(1:5)]
 
 #############################################  Para cada grupo de duplicados (NID) definir Solucao  #########################################################
 #############################################  G 1,2,3,4 - Categorias de duplicados  ######################################################################### 
@@ -129,6 +130,7 @@ logsExecucao <- logsExecucao[0,c(1:5)]
 
 
 nidsAllDupsPatients <- unique(dups_idart_openmrs$patientid)
+nidsAllDupsPatients <- nidsAllDupsPatients[c(1,2)]
 
 for (i in 1:length(nidsAllDupsPatients)) {
  
@@ -183,7 +185,7 @@ for (i in 1:length(nidsAllDupsPatients)) {
     
             solucao <- paste0("G2.2:CC - Pacientes duplicados no iDART e OpenMRS, os 2 sao activos, Trocar o nid  :", patient_to_update[3],  ", por ter  a data do ult_lev menos recente") 
             logSolucao(index[1],index[2],solucao)
-            beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,con_openmrs,con_postgres)
+            beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,con_openmrs,con_postgres) # kaka
           }
           else {
              # Grupo 2.3 (G2.3):  -Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que um dos pacientes nao e activo

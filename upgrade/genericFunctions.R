@@ -119,11 +119,12 @@ actualizaRegimeTerapeutico <- function(postges.con,regime.id,cod.regime,regimeno
 }
 
 
-#' Insere codRegime e  regimenopespecificado dum regimeter  na tabela regimeterapetico 
+#' Insere codRegime e  regimenopespecificado dum regime Terap na tabela regimeterapetico 
 #' 
 #' @param postgres.con objecto de conexao com mysql   
-#' @param  regimeid id do regime a ser actualizado na tabela regimeterapetico
+#' @param  regimeid.id do regime a ser actualizado na tabela regimeterapetico
 #' @param  cod.regime cod do regime por actualizar
+#' @param  regime.esquema esquema do regime  ex: 'TDF+3TC+DTG'
 #' @param  regimenopespecificado  uuid  do regime no openmrs  
 #' @return 1
 #' 
@@ -155,7 +156,7 @@ insertRegimeTerapeutico <- function(postges.con, regime.id ,regime.esquema,activ
 
 #' Busca o ultimo id na tabela doctor 
 #' 
-#' @param postgres.con objecto de conexao com mysql   
+#' @param postgres.con objecto de conexao com postges   
 #' @return regimeid id do regime a ser actualizado na tabela regimeterapetico
 #' @return cod.regime cod do regime por actualizar
 #' @return regimenopespecificado  uuid  do regime no openmrs  
@@ -169,4 +170,34 @@ getLastDoctorID <- function(postges.con){
   last_id <- max(as.numeric(df$id))
   last_id
   
+}
+
+
+
+#' Insere um provedor do openmrs (generic provider) na tabela doctor 
+#' este provedor e usado na API para associar os conceitos e postgres
+#' @param postgres.con objecto de conexao com postgres   
+#' @return provider.id a ser usado durante a insercao na tabela doctor
+#' @return 0   error
+#' @return 1 - sucesso
+#' @examples insertGenericProvider(con_postgres)
+# Actualiza a tabela doctor e as prescricoes 
+
+insertGenericProvider <- function(con.postgres){
+
+generic_provider_id = getLastDoctorID(con.postgres) + 5 # + 5 para evitar duplicacao de chaves
+
+res <- dbExecute(con.postgres,paste0(" INSERT INTO public.doctor(id, emailaddress, firstname, lastname, mobileno, modified, telephoneno, active, category) values
+                                (", generic_provider_id ," , '' , 'Provedor', 'Desconhecido', '', 'T', '', TRUE, 0); " ))
+
+if(res==1){ # inseriu entao associa o generic provider a todas as prescricoes
+  
+   dbExecute(con.postgres,paste0(" UPDATE public.prescription  SET doctor= " ,generic_provider_id, " WHERE doctor != ",generic_provider_id, " ;"))
+   status <-  dbExecute(con.postgres,paste0(" UPDATE public.doctor set active= " ,FALSE, " WHERE id != ",generic_provider_id, " ;"))
+  if(status>1){message('Actualizado com Sucesso')}
+} else {
+  
+  message('Nao foi possivel inserir o provedor generic. Insira manualmente')
+  
+}
 }
