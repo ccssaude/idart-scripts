@@ -254,7 +254,6 @@ getPacInactivo <- function(index, nid) {
   index_pat_inactivo <- index[ which( ( dups_idart_openmrs[index, ]$estado_tarv %in% c('TRANSFERIDO PARA','SUSPENSO','ABANDONO','OBITO','OUTRO') | is.na(dups_idart_openmrs[index, ]$estado_tarv) )  & 
                                        dups_idart_openmrs[index, ]$patientid == nid ) ]    #  index do paciente Nao activo
   
-
   patient <-
     c(
       dups_idart_openmrs$id[index_pat_inactivo],

@@ -7,7 +7,7 @@ require(stringr)
 require(tidyr)
 require(stringdist)
 require(dplyr)  ## Este package contem a funcao inner_join
-
+require(writexl)
 ####################################### Configuracao de Parametros  #####################################################################
 #########################################################################################################################################
 wd <- '~/R/iDART/idart-scripts/dataClean/'   ## dConfigure para qualquer directorio , e guardar o ficheiro helperFunctions.R neste dir
@@ -23,21 +23,22 @@ load(file = 'logsExecucao.Rdata') ## carrega a tabela dos logs
 ## OpenMRS Stuff - Configuracoes de variaveis de conexao 
 openmrs.user ='esaude'
 openmrs.password='esaude'
-openmrs.db.name='junho'
+openmrs.db.name='canico'
 openmrs.host='127.17.0.2'
 openmrs.port=3333
 # Objecto de connexao com a bd openmrs
 con_openmrs = dbConnect(MySQL(), user=openmrs.user, password=openmrs.password, dbname=openmrs.db.name, host=openmrs.host, port=openmrs.port)
 
 
-us.code= '0111040601' # modificar este parametro para cada US. Este e o Cod da US definido pelo MISAU e geralmente e a primeira parte do NID
+us.code= '0111030701' # modificar este parametro para cada US. Este e o Cod da US definido pelo MISAU e geralmente e a primeira parte do NID
+us.name <- getOpenmrsDefaultLocation(con_openmrs)
 
 
 
 # iDART Stuff - Configuracoes de variaveis de conexao 
 postgres.user ='postgres'
 postgres.password='postgres'
-postgres.db.name='junho'
+postgres.db.name='canico'
 postgres.host='127.17.0.3'
 postgres.port=5432
 # Objecto de connexao com a bd openmrs postgreSQL
@@ -69,7 +70,6 @@ dups_idart_openmrs <- inner_join(duplicadosiDART,openmrsAllPatients, by=c("uuid"
 dups_idart_openmrs$solucao <- ""
 
 
-#dups_same_uuid <- subset(dups_idart_openmrs,dups_idart_openmrs$uuid ==)
 #############################################  Para cada grupo de duplicados (NID) definir Solucao  #########################################################
 #############################################  G 1,2,3,4 - Categorias de duplicados  ######################################################################### 
 #############################################  CM - Corrigir Manualmente             #########################################################################
@@ -137,7 +137,7 @@ nidsAllDupsPatients <- unique(dups_idart_openmrs$patientid)
 #nidsAllDupsPatients <- nidsAllDupsPatients[c(22)]
 
 
-for (i in 23:length(nidsAllDupsPatients)) {
+for (i in 1:length(nidsAllDupsPatients)) {
  
    nid_duplicado <- nidsAllDupsPatients[i]
    index <- which(dups_idart_openmrs$patientid==nid_duplicado)
@@ -147,7 +147,7 @@ for (i in 23:length(nidsAllDupsPatients)) {
     
     if(dups_idart_openmrs$uuid[index[1]] == dups_idart_openmrs$uuid[index[2]] ){  ## Grupo 1 (G1)
         # Solucao Grupo 1 (G1.1)
-        solucao <- paste0("G1.1-CM  Unir  os paciente com o NID: ", dups_idart_openmrs$patientid[index[1]] , "no iDART e no OpenMRS")
+        solucao <- paste0("G1.1-CM  Unir  os paciente com o NID: ", dups_idart_openmrs$patientid[index[1]] , "no iDART e no OpenMRS, o preferido e aquele  que tiver maior numero de levantamentos")
         logSolucao(index[1],index[2] ,solucao)  
         logAction(composePatientToUpdate(index[1],df = dups_idart_openmrs),solucao  )
     } 
@@ -162,9 +162,9 @@ for (i in 23:length(nidsAllDupsPatients)) {
       #################################    Grupo 2 (G2)   ###########################################
       #  Avaliar o grau de simetria dos nomes , para saber se trata-se do mesmo paciente 
       #Algoritimo  de simetria de strings com o method :  Jaro-Winker distance (eficiente para comparacao de nomes)
-      if(stringdist(nome_pat_1,nome_pat_2, method = "jw") > 0.1){     # Grupo 2 (G2)
+      if(stringdist(nome_pat_1,nome_pat_2, method = "jw") > 0.15){     # Grupo 2 (G2)
                                                                       #s e o rsultado de stringdist for:
-                                                                      # 0 - perfect match, 0.1 - minimo aceitavel definido, 1 - no match at al
+                                                                      # 0 - perfect match, 0.5 - minimo aceitavel definido, 1 - no match at al
         if(! (is.na(estado_tarv_1) | is.na(estado_tarv_2)) ) {
           
          # Grupo 2.1 (G2.1) Pacientes  duplicados  com  uuids diferentes e nomes diferentes sendo que os dois sao abandonos 
@@ -213,7 +213,16 @@ for (i in 23:length(nidsAllDupsPatients)) {
         else {
           
           if('TRANSFERIDO DE' %in%  c(estado_tarv_1,estado_tarv_2)){
-            
+              if(estado_tarv_1==estado_tarv_2){ ## os dois pacientes sao activos
+                
+                patient_to_update <- getPacLevMenosRecente(index,nid = nid_duplicado)
+                new_nid <- getNewNid(patient_to_update[3])  
+                solucao <- paste0("G2.3:CC - Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS,  de preferencia: ", nid_duplicado ,' - ', 
+                                  patient_to_update[5], " por ter a data do ult lev menos recente")
+                logSolucao(index[1],index[2] ,solucao)  
+                beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,openmrsAllPatients,con_openmrs,con_postgres)
+                
+              }
                  
                  patient_to_update <- getPacInactivo(index,nid = nid_duplicado)
                  new_nid <- getNewNid(patient_to_update[3])  
@@ -261,11 +270,15 @@ for (i in 23:length(nidsAllDupsPatients)) {
           ## Solucao G3.1:-CM (G3.1):  Unir  os paciente no iDART , e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados
          
   
-         patient_to_update <- getPacLevMaisRecente(index,nid = nid_duplicado)
-         new_nid <- getNewNid(patient_to_update[3])  
-         solucao <- paste0("G3.1:-CM  -  Unir  os paciente no  nid  : ", nid_duplicado ,' - ', patient_to_update[5], " o paciente preferido e aquele que tiver levantamentos mais actualizados")
-         logSolucao(index[1],index[2] ,solucao)  
-         logAction(composePatientToUpdate(index[1],df = dups_idart_openmrs),solucao  )
+        patient_to_update <-    getPacLevMaisRecente(index, nid = nid_duplicado)
+        new_nid <- getNewNid(patient_to_update[3])
+        solucao <-  paste0("G3.1:-CM  -  Unir  os paciente com o NID: (", nid_duplicado,' - ' , dups_idart_openmrs$full_name[index[1]] ,
+            ") , com ",  "(", nid_duplicado,' - ' , dups_idart_openmrs$full_name[index[2]] ,") ,no iDART e no OpenMRS, o preferido e aquele
+                           que tiver maior numero de levantamentos" )
+        
+        logSolucao(index[1], index[2] , solucao)
+        logAction(composePatientToUpdate(index[1], df = dups_idart_openmrs),
+                  solucao)
          
           
     
@@ -275,69 +288,64 @@ for (i in 23:length(nidsAllDupsPatients)) {
       }
   }
    
-  # if(length(index)==3){   # Grupo G4
-  #   
-  #   if(dups_idart_openmrs$uuid[index[1]] == dups_idart_openmrs$uuid[index[2]] ){ 
-  # 
-  #     # Verificar se e duplicado no OpenMRS 
-  #     if(dups_idart_openmrs$uuid[index[1]] %in% duplicadosOpenmrs$uuid){
-  #   
-  #       nome_pat <- dups_idart_openmrs$full_name[index[1]]
-  #       solucao <- paste0("G4.1 -  Unir os  2 Pacientes  os paciente com nome: ",nome_pat," no iDART e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados no iDART")
-  #       dups_idart_openmrs$solucao[index[1]] <- solucao
-  #       dups_idart_openmrs$solucao[index[2]] <- solucao
-  #     }
-  #     else  {
-  #       # nao e duplicado no OpenMRS
-  #       nome_pat <- dups_idart_openmrs$full_name[index[1]]
-  #       solucao <- paste0("G4.1 -  Unir os  2 Pacientes  os paciente com nome: ",nome_pat," no iDART , o   paciente preferido e aquele que tiver levantamentos mais actualizados")
-  #       dups_idart_openmrs$solucao[index[1]] <- solucao
-  #       dups_idart_openmrs$solucao[index[2]] <- solucao
-  #     }
-  #     
-  #     
-  #   } 
-  #   if(dups_idart_openmrs$uuid[index[1]] == dups_idart_openmrs$uuid[index[3]] ){ 
-  #       
-  #       # Verificar se e duplicado no OpenMRS 
-  #       if(dups_idart_openmrs$uuid[index[1]] %in% duplicadosOpenmrs$uuid){
-  #         nome_pat <- dups_idart_openmrs$full_name[index[1]]
-  #         solucao <- paste0("G4.1 -  Unir os  2 Pacientes  os paciente com nome: ",nome_pat," no iDART e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados no iDART")
-  #         dups_idart_openmrs$solucao[index[1]] <- solucao
-  #         dups_idart_openmrs$solucao[index[3]] <- solucao
-  #       }   else {
-  #         # nao e duplicado no OpenMRS
-  #         nome_pat <- dups_idart_openmrs$full_name[index[1]]
-  #         solucao <- paste0("G4.1 -  Unir os  2 Pacientes  os paciente com nome: ",nome_pat," no iDART , o   paciente preferido e aquele que tiver levantamentos mais actualizados")
-  #         dups_idart_openmrs$solucao[index[1]] <- solucao
-  #         dups_idart_openmrs$solucao[index[3]] <- solucao
-  #       }
-  #       
-  #       
-  #   }  
-  #   if(dups_idart_openmrs$uuid[index[2]] == dups_idart_openmrs$uuid[index[3]] ){ 
-  #     
-  #     # Verificar se e duplicado no OpenMRS 
-  #     if(dups_idart_openmrs$uuid[index[2]] %in% duplicadosOpenmrs$uuid){
-  #       nome_pat <- dups_idart_openmrs$full_name[index[2]]
-  #       solucao <- paste0("G4.1 -  Unir os  2 Pacientes  os paciente com nome: ",nome_pat," no iDART e no OpenMRS, o   paciente preferido e aquele que tiver levantamentos mais actualizados no iDART")
-  #       dups_idart_openmrs$solucao[index[2]] <- solucao
-  #       dups_idart_openmrs$solucao[index[3]] <- solucao
-  #     } 
-  #     else {
-  #       # nao e duplicado no OpenMRS
-  #       nome_pat <- dups_idart_openmrs$full_name[index[2]]
-  #       solucao <- paste0("G4.1 -  Unir os  2 Pacientes  os paciente com nome: ",nome_pat," no iDART , o   paciente preferido e aquele que tiver levantamentos mais actualizados")
-  #       dups_idart_openmrs$solucao[index[1]] <- solucao
-  #       dups_idart_openmrs$solucao[index[3]] <- solucao
-  #     }
-  #     
-  #     
-  #   }
-  #     
-  # }
+  else if(length(index)==3){   # Grupo G4
+     
+    if(dups_idart_openmrs$uuid[index[1]] == dups_idart_openmrs$uuid[index[2]] ){
+
+
+      # Solucao Grupo G4.1  (G4.1)
+      solucao <- paste0("G4.1-CM  Unir  os paciente com o NID: (", dups_idart_openmrs$patientid[index[1]],' - ' ,dups_idart_openmrs$full_name[index[1]] , ") , com ",
+                        "(", dups_idart_openmrs$patientid[index[2]],' - ' ,dups_idart_openmrs$full_name[index[2]] , ") ,no iDART e no OpenMRS, o preferido e aquele  que tiver maior numero de levantamentos")
+      logSolucao(index[1],index[2] ,solucao)  
+      logAction(composePatientToUpdate(index[1],df = dups_idart_openmrs),solucao  )
+
+
+    } 
+    else if(dups_idart_openmrs$uuid[index[1]] == dups_idart_openmrs$uuid[index[3]] ){
+
+      
+      # Solucao Grupo G4.1  (G4.1)
+      solucao <- paste0("G4.1-CM  Unir  os paciente com o NID: (", dups_idart_openmrs$patientid[index[1]],' - ' ,dups_idart_openmrs$full_name[index[1]] , ") , com ",
+                        "(", dups_idart_openmrs$patientid[index[3]],' - ' ,dups_idart_openmrs$full_name[index[3]] , ") ,no iDART e no OpenMRS, o preferido e aquele  que tiver maior numero de levantamentos")
+      logSolucao(index[1],index[3] ,solucao)  
+      logAction(composePatientToUpdate(index[1],df = dups_idart_openmrs),solucao  )
+
+
+    }
+    else  if(dups_idart_openmrs$uuid[index[2]] == dups_idart_openmrs$uuid[index[3]] ){
+
+      solucao <- paste0("G4.1-CM  Unir  os paciente com o NID: (", dups_idart_openmrs$patientid[index[2]],' - ' ,dups_idart_openmrs$full_name[index[3]] , ") , com ",
+                        "(", dups_idart_openmrs$patientid[index[3]],' - ' ,dups_idart_openmrs$full_name[index[3]] , ") ,no iDART e no OpenMRS, o preferido e aquele  que tiver maior numero de levantamentos")
+      logSolucao(index[2],index[3] ,solucao)  
+      logAction(composePatientToUpdate(index[2],df = dups_idart_openmrs),solucao  )
+    }
+    else {
+      
+      # Solucao Grupo G4.1  (G4.1)
+      solucao <- paste0("N/P nao foi possivel encontrar a solucao para os pacientes triplicados. Deve-se corrigir manualmente")
+      logSolucao(index[1],index[3] ,solucao)  
+      logAction(composePatientToUpdate(index[1],df = dups_idart_openmrs),solucao  )
+    }
+  }
     
   
   }
-    
-wh
+
+
+corrigir_manualmente <- logsExecucao[which(grepl(pattern = 'CM',x=logsExecucao$accao,ignore.case = FALSE)),]
+
+write_xlsx(
+  corrigir_manualmente,
+  path = 'Pacientes_unir_idart_openmrs_.xlsx',
+  col_names = TRUE,
+  format_headers = TRUE
+)
+
+
+write_xlsx(
+  logsExecucao,
+  path = 'log_de_mudancas_idart_e_openmrsExecucao.xlsx',
+  col_names = TRUE,
+  format_headers = TRUE
+)
+
