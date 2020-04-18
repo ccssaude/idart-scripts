@@ -1,5 +1,44 @@
 
 
+#' Busca todos regimes T na BD openmrs Da US
+#' 
+#' @param openmrs.con objecto de conexao com mysql    
+#' @return df regimes openmrs
+#' @examples
+#' default_loc = getRegimesOpenMRS(con_openmrs)
+#' 
+getRegimesOpenMRS <- function (openmrs.con){
+  resut_set <- dbSendQuery(openmrs.con, "			
+            
+SELECT 
+    reg.value_coded,
+    nomes.concept_id,
+	nomes.name ,
+    nomes.locale,
+    nomes.voided,
+    nomes.uuid,
+    count(*)
+FROM
+    (SELECT value_coded from obs o
+        INNER JOIN encounter e ON o.encounter_id = e.encounter_id
+        AND e.encounter_type = 18  and o.concept_id=1088 
+        AND o.voided = 0
+        AND e.voided = 0) reg
+        LEFT JOIN
+    (SELECT 
+        c.concept_id, name, locale, voided, c.uuid
+     from concept_name cn  , concept c 
+     WHERE     cn.concept_id=c.concept_id and locale = 'pt'  and cn.voided =0
+   ) nomes ON nomes.concept_id = reg.value_coded
+        
+        group by nomes.concept_id ")
+  data <- fetch(resut_set,n=-1)
+  RMySQL::dbClearResult(resut_set)
+  return (data)
+  
+}
+
+
 #' Busca o nome da US do openmrs
 #' 
 #' @param openmrs.con objecto de conexao com mysql    

@@ -1,10 +1,8 @@
 # Packages que contem algumas funcoes a serem usadas 
 require(RMySQL)
 require(RPostgreSQL)
-require(openssl)  ## instalar com install.packages("openssl")
 require(plyr)     ## instalar com install.packages("plyr")
 require(dplyr)    ## instalar com install.packages("dplyr")
-require(readr)    ## instalar com install.packages("readr")
 ####################################### Configuracao de Parametros  #####################################################################
 #########################################################################################################################################
 wd <- '~/R/iDART/idart-scripts/upgrade/'  
@@ -15,7 +13,7 @@ source('genericFunctions.R')
 ## OpenMRS Stuff - Configuracoes de variaveis de conexao 
 openmrs.user ='esaude'
 openmrs.password='esaude'
-openmrs.db.name='junho'
+openmrs.db.name='openmrs'
 openmrs.host='172.17.0.2'
 openmrs.port=3306
 #us.code= '0111040601' # CS 1 junho# modificar este parametro para cada US. Este e o Cod da US definido pelo MISAU e geralmente e a primeira parte do NID
@@ -26,8 +24,8 @@ con_openmrs = dbConnect(MySQL(), user=openmrs.user, password=openmrs.password, d
 # iDART Stuff - Configuracoes de variaveis de conexao 
 postgres.user ='postgres'
 postgres.password='postgres'
-postgres.db.name='junho'
-postgres.host='172.17.0.4'
+postgres.db.name='pharm'
+postgres.host='172.17.0.3'
 postgres.port=5432
 # Objecto de connexao com a bd openmrs postgreSQL
 con_postgres <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres.password, dbname = postgres.db.name,host = postgres.host)
@@ -45,7 +43,7 @@ stockcenter_name <- getIdartStockCenterName(con_postgres)
 
 ## Update facility name , stockcenter name clinic name
 status <- dbExecute(  con_postgres,  paste0("  update public.nationalclinics set facilityname = '",new_clinic_name,"' where facilityname = '",idart_clinic_name,"';"))
-if(status>1){
+if(status==1){
   message('facilityname Actualizado com Sucesso')
   }else {
   message('Nao foi possivel inserir o facilityname no iDART Insira manualmente')
@@ -54,7 +52,7 @@ if(status>1){
 
 
 status <- dbExecute(con_postgres,  paste0("update public.clinic    set clinicname = '",new_clinic_name,"' where clinicname = '",facility_name,"';"))
-if(status>1){
+if(status==1){
   message('clinicname Actualizado com Sucesso')
 }else {
   message('Nao foi possivel inserir o clinicname no iDART Insira manualmente')
@@ -63,7 +61,7 @@ if(status>1){
  
 
 status <-  dbExecute(  con_postgres,  paste0("update public.stockcenter    set stockcentername = '",new_clinic_name,"' where stockcentername = '",stockcenter_name,"';"))
-if(status>1){
+if(status==1){
   message('stockcentername Actualizado com Sucesso')
 }else {
   message('Nao foi possivel inserir o stockcentername no iDART Insira manualmente')
@@ -140,3 +138,5 @@ dbExecute(con_postgres,sql_update_admin_md5 )
 insertGenericProvider(con_postgres)
 
 
+
+packagedrg <- dbGetQuery(con_postgres, "select * from packagedruginfotmp where patientid like '%0111040601/2016/01759%' ;")

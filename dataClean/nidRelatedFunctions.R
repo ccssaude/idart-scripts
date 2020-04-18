@@ -69,7 +69,7 @@ actualizaNidiDART <-   function(con.idart, patient.to.update,new.nid) {
   
   idart <- tryCatch({
     
-    message(paste0( "iDART - Actualizando dados do paciente: ",patient.to.update[3] , " para NID:", new.nid ) )
+    message(paste0( "iDART - Actualizando dados do paciente: ",patient.to.update[3] , ' - ',patient.to.update[5], " para NID:", new.nid ) )
     
     dbExecute(
       con.idart,
@@ -91,22 +91,27 @@ actualizaNidiDART <-   function(con.idart, patient.to.update,new.nid) {
         " ;"
       )
     ) 
-    
+    #ect * from packagedruginfotmp where patientid  = '0111040601/2018/00018' and patientfirstname = 'Francisca' and patientlastname='Rassul'
+    # A tabela packedruginfotemp e uma tabela de descarga apenas
     dbExecute(
       con.idart,
       paste0(
         "update  public.packagedruginfotmp set patientid = '",
         new.nid,
-        "' where patientid = ",
-        patient.to.update[3]),  " ;"
-      )
+        "' where patientid = '",
+        patient.to.update[3],  "' and lower(patientfirstname) = '",
+           patient.to.update[7] ,
+         "'  and  lower(patientlastname) ='" ,
+        patient.to.update[8],
+        "' ;") )
+      
     
-    logAction(patient.info = patient.to.update,action = paste0('iDART- NID:',patient.to.update[3], ' na tabela patient/public.patientidentifier/public.packagedruginfotmp  mudou para: ', new.nid))
+    logAction(patient.info = patient.to.update,action = paste0('iDART- NID:',patient.to.update[3], ' - ',patient.to.update[5], ' na tabela patient/public.patientidentifier/public.packagedruginfotmp  mudou para: ', new.nid))
     
     return(1)
   },
   error = function(cond) {
-    msg <- paste0("iDART - patient/public.patientidentifier/public.packagedruginfotmp Nao foi possivel Actualizar o NID  ":patient.to.update[3], ' Para :', new.nid,  ' Erro: ', as.character(cond))
+    msg <- paste0("iDART - patient/public.patientidentifier/public.packagedruginfotmp Nao foi possivel Actualizar o NID  ":patient.to.update[3], ' - ',patient.to.update[5], ' Para :', new.nid,  ' Erro: ', as.character(cond))
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -128,7 +133,7 @@ actualizaNidiDART <-   function(con.idart, patient.to.update,new.nid) {
     
   })
   
-  idart
+  return(idart)
   
 }
 
@@ -147,7 +152,7 @@ actualizaNidOpenMRS <-   function(con.openmrs, patient.to.update,new.nid) {
   openmrs = TRUE
   openmrs <- tryCatch({
     
-    message(paste0( "OpenMRS - Actualizando dados   do paciente: ",patient.to.update[3] , " para NID:", new.nid ) )
+    message(paste0( "OpenMRS - Actualizando dados   do paciente: ",patient.to.update[3] , ' - ',patient.to.update[5], " para NID:", new.nid ) )
     
     dbGetQuery(
       con.openmrs,
@@ -160,14 +165,14 @@ actualizaNidOpenMRS <-   function(con.openmrs, patient.to.update,new.nid) {
       )
     )
     
-    openmrs = TRUE
-    logAction(patient.info = patient.to.update,action = paste0('OpenMRS NID:',patient.to.update[3], ' na tabela patient_identifier mudou para: ', new.nid))
+    openmrs <<- TRUE
+    logAction(patient.info = patient.to.update,action = paste0('OpenMRS NID:',patient.to.update[3], ' - ',patient.to.update[5], ' na tabela patient_identifier mudou para: ', new.nid))
     
     
     
   },
   error = function(cond) {
-    msg <- paste0("OpenMRS - Tabela patient_identifier Nao foi possivel Actualizar o NID  ":patient.to.update[3], ' Para :', new.nid,  ' Erro: ', as.character(cond))
+    msg <- paste0("OpenMRS - Tabela patient_identifier Nao foi possivel Actualizar o NID  ":patient.to.update[3],  ' - ',patient.to.update[5],' Para :', new.nid,  ' Erro: ', as.character(cond))
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -394,7 +399,7 @@ formatNidMisau <- function(nid) {
     
     return(new_nid)
     
-  } else{
+  } else {
    
       count <- str_count(new_nid, '/')  # Quantas barras tem o nid
       

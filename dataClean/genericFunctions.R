@@ -1,4 +1,6 @@
-require(plyr)
+require(dplyr)
+source('nidRelatedFunctions.R')
+
 #' Busca todos pacientes do OpenMRS
 #' 
 #' @param con.postgres  obejcto de conexao com BD OpenMRS
@@ -137,8 +139,8 @@ getTotalDeDispensasPorPaciente  <- function(patient.id) {
 logAction <- function (patient.info,action){
   
   
-  temp =   add_row(logsExecucao, id=as.numeric(patient.info[1]),uuid=patient.info[2],patientid=patient.info[3],full_name=patient.info[5],accao=action)
-  logsExecucao <<- rbind.fill(logsExecucao, temp)
+  logsExecucao <<-  add_row(logsExecucao, id=as.numeric(patient.info[1]),uuid=patient.info[2],patientid=patient.info[3],full_name=patient.info[5],accao=action)
+  # logsExecucao <<- rbind.fill(logsExecucao, temp)  gera registos multipos no log
   
 }
 
@@ -222,14 +224,14 @@ updateUuidOpenMRS <- function (patient.id, uuid.openmrs) {
 
 #' Inicia o processo de actualizacao de um nid na base de dados iDART e OpenMRS 
 #' 
-#' @param new.nid NID do paciente por actualizar
+#' @param new.nid.act NID do paciente por actualizar
 #' @param patient_to_update  informacao do paciente[id,uuid,patientid,openmrs_patient_id,full.name,index]
 #' @param df.idart.patients datafrane  com informacao de todos pacientes no iDART (info de identificacao e estado do paciente)
 #' @param con.openmrs objecto de conexao com a bd mysql
 #' @param con.idart objecto de  conexao com bd postgresql
 #' @return Unknown
 #' @examples beginUpdateProcess(new.nid.act,patient_to_update,df.idart.patients , con.openmrs,con.idart)
-beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients , con.openmrs,con.idart){
+beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients , df.openmrs.patients,con.openmrs,con.idart){
   
   if(new.nid.act != 0) {
     
@@ -244,10 +246,26 @@ beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients ,
       }
       else{
         
-        logAction(patient_to_update, paste0('Nao foi Actualizar o NID no iDART:',patient_to_update[3]))
+        logAction(patient_to_update, paste0('PostgreSQL -  Nao foi Actualizar o NID no iDART:',patient_to_update[3]))
         
       }
       
+      
+    }
+    else if (checkIfExistsNidOpenMRS(new.nid.act,df.openmrs.patients) ){
+    
+      new.nid.act <- getNewNid(new.nid.act)
+      status_act_idart <- actualizaNidiDART(con.idart = con.idart,patient.to.update =patient_to_update,new.nid = new.nid.act )
+      
+      if(status_act_idart==1){
+        actualizaNidOpenMRS(con.openmrs = con.openmrs,patient.to.update = patient_to_update,new.nid = new.nid.act)
+        
+      }
+      else{
+        
+        logAction(patient_to_update, paste0('PostgreSQL - Nao foi Actualizar o NID no iDART:',patient_to_update[3]))
+        
+      }
       
     }
     else {
@@ -260,7 +278,7 @@ beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients ,
       }
       else{
         
-        logAction(patient_to_update, paste0('Nao foi Actualizar o NID no iDART:',patient_to_update[3]))
+        logAction(patient_to_update, paste0('PostgreSQL -  Nao foi Actualizar o NID no iDART:',patient_to_update[3]))
         
       }
     }
@@ -274,3 +292,19 @@ beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients ,
 
 
 
+#' Busca o nome da US do openmrs
+#' 
+#' @param openmrs.con objecto de conexao com mysql    
+#' @return us_default_locatoion
+#' @examples
+#' default_loc = getOpenmrsDefaultLocation(con_openmrs)
+getOpenmrsDefaultLocation <- function (openmrs.con){
+  resut_set <- dbSendQuery(openmrs.con, "select property_value from global_property where property= 'default_location'")
+  data <- fetch(resut_set,n=1)
+  openmrs_default_location <- data$property_value[1]
+  RMySQL::dbClearResult(resut_set)
+  rm(data,resut_set)
+  #detach("package:RMySQL", unload = TRUE)
+  return (openmrs_default_location)
+  
+}
