@@ -1,5 +1,3 @@
-require(dplyr)
-source('nidRelatedFunctions.R')
 
 #' Busca todos pacientes do OpenMRS
 #' 
@@ -308,3 +306,22 @@ getOpenmrsDefaultLocation <- function (openmrs.con){
   return (openmrs_default_location)
   
 }
+
+#' Verifica se os ficheiros necessarios para executar as operacoes existem
+#' 
+#' @param files  nomes dos ficheiros
+#'  @param dir  directorio onde ficam os files
+#' @return TRUE/FALSE
+#' @examples
+#' default_loc = getOpenmrsDefaultLocation(con_openmrs)
+checkScriptsExists <- function (files, dir){
+for(i in 1:length(files)){
+  f <- files[i]
+  if(!file.exists(paste0(dir,f))){
+    message(paste0('Erro - Ficheiro ', f, ' nao existe em ',dir))
+    return(FALSE)
+  }
+}
+  return(TRUE)
+}
+

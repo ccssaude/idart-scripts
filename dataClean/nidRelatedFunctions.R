@@ -210,7 +210,7 @@ getNumSeqNid <- function(nid){
   count <- str_count(new_nid, '/')  
 
   if (count == 1) {
-    if (getNidLength(new_nid) %in% c(4, 5, 6, 7, 8)) {
+    if (getNidLength(new_nid) %in% c(4, 5, 6, 7, 8,9)) {
       ## nids 77/13 , 980/11,  2207/10, 790/08 
     
       first_index <- stri_locate_first(new_nid, regex = "/")[[1]]
@@ -250,7 +250,7 @@ getAnoNid <- function(nid){
   count <- str_count(new_nid, '/')  
   
   if (count == 1) {
-    if (getNidLength(new_nid) %in% c(4, 5, 6, 7, 8)) {
+    if (getNidLength(new_nid) %in% c(4, 5, 6, 7, 8,9)) {
       ## nids 77/13 , 980/11,  2207/10, 790/08 
       
       first_index <- stri_locate_first(new_nid, regex = "/")[[1]]
@@ -259,12 +259,12 @@ getAnoNid <- function(nid){
       if(evaluateAno(ano)){
         return(ano)
       } else {
-        return(FALSE)
+        return(0)
       }
       
     
     }else {
-      return(FALSE) ##  nao e possivel econtrar o ano
+      return(0) ##  nao e possivel econtrar o ano
        }
     } else if (count == 2) {
       if (getNidLength(new_nid) %in% c(13,14,15, 16, 17,18,19,20,21)) {   # ex 1100711/18/0729, 11030701/15/0023, 11030701/08/04676, 0110040701/19/0547
@@ -401,14 +401,19 @@ formatNidMisau <- function(nid) {
     
   } else {
    
+    if (!checkBarraNid(new_nid)){
+      
+      return(0)
+    } else {
+      
       count <- str_count(new_nid, '/')  # Quantas barras tem o nid
       
       if (count == 1) {
         if (getNidLength(new_nid) %in% c(4, 5, 6, 7, 8)) {
           ## nids  4,5,6, 7,8)
           
-          if(0 != getUsCode(nid)){ 
-            if(0 != getAnoNid(nid)){
+          if(0 != getUsCode(new_nid)){ 
+            if(0 != getAnoNid(new_nid)){
               nid_reformatado <- formatNidUmaBarra(new_nid)
               return(nid_reformatado)
             } else{return(0)}
@@ -419,7 +424,8 @@ formatNidMisau <- function(nid) {
           return(0) ## Nao foi possivel formatar o nid
         }
         
-      } else if (count == 2) {
+      } 
+      else if (count == 2) {
         if (getNidLength(new_nid) %in% c(13,14,15, 16, 17,18,19,20,21)) {       # ex 1100711/18/0729, 11030701/15/0023, 11030701/08/04676, 0110040701/19/0547
           
           if(0 != getUsCode(nid)){ 
@@ -431,14 +437,18 @@ formatNidMisau <- function(nid) {
           } 
           else{return(0)}
         } 
-        else if(getNidLength(new_nid)==21){ #  nao e possivel reformatar o nid com script deve ser manualemnte}
+        else if(getNidLength(new_nid)==21){ #  acho k e reduntande ja que veridacamos seo nidetem 21caracteres na funcao checkNidFormatMisau(new_nid)
           return(new_nid)
         } else{ return(0) }
         
-      } else {
+      } 
+      else {
         return(0) ##  nao e possivel reformatar o nid com script deve ser manualemnte}
         
       }
+      
+    }
+      
     } 
   
 }
@@ -503,30 +513,64 @@ getNewNidNewSeq <- function(old.nid, df.openmrs.patients) {
 }
 
 #' Atribui um novo nid apartir do antigo,  trocando o cod de servico ou formatando obdecendo o 
-#' padrao do MISAU
+#' padrao do MISAU (Valido para US com nids no formato seq/ano : ex 384/12 ,1245/06)
 #' @param old.nid nid  do paciente que se vai atribuir novo nid
 #' @return  novo nid  
 #' @examples getNewNid(0111030701/2010/00195) retorna 0111030702/2010/00195
 #' @examples getNewNid( 2145/11) retorna 01111030701/2011/2145
 getNewNid <- function(old.nid) {
   
-  new_nid <- formatNidMisau(old.nid)
-  if(new_nid ==old.nid ){
+  antigo <- old.nid
+  new_nid <- formatNidMisau(antigo)
+  
+  if(0 != new_nid) {
+    
+    if(new_nid ==antigo ){
+      #TODO mudar o codigdo de servico
+      us_code <- getUsCode(new_nid)
+      new_us_cod <- changeUsCode(us_code)
+      nid_formatado <-
+        paste0(new_us_cod, "/",  getAnoNid(new_nid), "/", getNumSeqNid(new_nid))
+      return(nid_formatado) # The same as return(nid_formatado)
+    } else { 
+      
+      return(new_nid)
+      }
+    
+  } else { return(0)}
+  
+
+}
+
+#' Atribui um novo nid apartir do antigo,  trocando o cod de servico ou formatando obdecendo o 
+#' padrao do MISAU -> (Valido para US com nids no formato ano/seq : ex 12/384 ,06/2357)
+#' @param old.nid nid  do paciente que se vai atribuir novo nid
+#' @return  novo nid  
+#' @examples getNewNid(10/195) retorna 0111030702/2010/00195
+#' @examples getNewNid( 11/34455) retorna 01111030701/2011/2145
+getNewNidV1 <- function(old.nid) {
+  antigo = old.nid
+  new_nid <- formatNidMisauV1(antigo)
+  
+  if(0 != new_nid) {
+    
+  if(new_nid ==antigo ){
     #TODO mudar o codigdo de servico
     us_code <- getUsCode(new_nid)
     new_us_cod <- changeUsCode(us_code)
     nid_formatado <-
-      paste0(new_us_cod, "/",  getAnoNid(old.nid), "/", getNumSeqNid(old.nid))
+      paste0(new_us_cod, "/",  getAnoNidV1(new_nid), "/", getNumSeqNidV1(new_nid))
     nid_formatado # The same as return(nid_formatado)
+  } else { 
+    
+    return(new_nid)
+  } }  else {
+    return(0)
   }
-  else if(new_nid !=0 ){
-     return(new_nid)
-      }
-  else {
-        return(0)
-      }
+  
+}
 
-    }
+
 #' Verifica se o nid existe na BD iDART
 #' @param nid nid  do paciente que se vai atribuir novo nid
 #' @param df dataframe onde se faz a verificacao  
@@ -692,5 +736,188 @@ changeUsCode<- function(us.code){
     new_us_cod
   }
 }
+
+
+
+
+
+######################## FormatNidMisauV1  ###################################################
+# Para US que os nids mal formatados comecam com o ano: ex 10/3003 , 09/345 , 16/9356
+
+
+formatNidMisauV1 <- function(nid) {
+  
+  new_nid <- removeLettersFromNid(nid)
+  if(checkNidFormatMisau(new_nid)){
+    
+    return(new_nid)
+    
+  } else {
+    
+    if (!checkBarraNid(new_nid)){
+      
+      return(0)
+    } else {
+      
+      count <- str_count(new_nid, '/')  # Quantas barras tem o nid
+      
+      if (count == 1) {
+        if (getNidLength(new_nid) %in% c(4, 5, 6, 7, 8,9)) {
+          ## nids  4,5,6, 7,8)
+          
+          if(0 != getUsCode(nid)){ 
+            if(0 != getAnoNidV1(nid)){
+              nid_reformatado <- formatNidUmaBarraV1(new_nid)
+              return(nid_reformatado)
+            } else{return(0)}
+            
+          } 
+          else{ return(0) } }
+        else {
+          return(0) ## Nao foi possivel formatar o nid
+        }
+        
+      } 
+      else if (count == 2) {
+        if (getNidLength(new_nid) %in% c(13,14,15, 16, 17,18,19,20,21)) {       # ex 1100711/18/0729, 11030701/15/0023, 11030701/08/04676, 0110040701/19/0547
+          
+          if(0 != getUsCode(nid)){ 
+            if(0 != getAnoNidV1(nid)){
+              nid_reformatado <- formatNidDuasBarrasV1(new_nid)
+              return(nid_reformatado)
+            } else{return(0)}
+            
+          } 
+          else{return(0)}
+        } 
+        else if(getNidLength(new_nid)==21){ #  acho k e reduntande ja que veridacamos seo nidetem 21caracteres na funcao checkNidFormatMisau(new_nid)
+          return(new_nid)
+        } else{ return(0) }
+        
+      } 
+      else {
+        return(0) ##  nao e possivel reformatar o nid com script deve ser manualemnte}
+        
+      }
+      
+    }
+    
+  } 
+  
+}
+
+
+#' Extract  o numero de sequencia do NID
+#' 
+#' @param NID do paciente
+#' @return  Numero de sequencia do NID
+#' @examples getNumSeqNidV1(0111030701/2010/195) return '00195'
+getNumSeqNidV1 <- function(nid){
+  
+  new_nid <- removeLettersFromNid(nid)
+  # Quantas barras tem o nid
+  count <- str_count(new_nid, '/')  
+  
+  if (count == 1) {
+    if (getNidLength(new_nid) %in% c(4, 5, 6, 7, 8,9)) {
+      ## nids 13/77 , 11/980,  10/2207, 08/790 
+      
+      first_index <- stri_locate_first(new_nid, regex = "/")[[1]]
+      seq <- substr(new_nid,  first_index+1 , nchar(new_nid))
+      seq <- formatSequencia(seq)
+      return(seq)
+    } else {
+      return(0) ##  nao e possivel econtrar o numSeq
+    }
+  } else if (count == 2) {
+    if (getNidLength(new_nid) %in% c(13,14,15, 16, 17,18,19,20,21)) {
+      
+      secon_index <- stri_locate_last(new_nid, regex = "/")[[1]]
+      seq <- substr(new_nid, secon_index + 1, nchar(new_nid))
+      seq <- formatSequencia(seq)
+      return(seq)
+    }else {
+      return(0) ##  nao e possivel econtrar o numSeq
+    }
+    
+  } else {
+    return(0) ##  nao e possivel econtrar o numSeq
+    
+  }
+  
+}
+
+#'  Extract o ano do  NID  para nids formatados da seguinte fomra 10/2233 9/3945  2012/324958()
+#' 
+#' @param NID do paciente
+#' @return   Ano do Nid
+#' @examples getAnoNidV1(0111030701/2010/00195)
+getAnoNidV1 <- function(nid){
+  
+  new_nid <- removeLettersFromNid(nid)
+  # Quantas barras tem o nid
+  count <- str_count(new_nid, '/')  
+  
+  if (count == 1) {
+    if (getNidLength(new_nid) %in% c(4, 5, 6, 7, 8,9)) {
+      ## nids 13/77 , 11/980,  10/2207, 08/790 
+      
+      first_index <- stri_locate_first(new_nid, regex = "/")[[1]]
+      ano <- substr(new_nid, 0,  first_index -1 )
+      ano <- formatAno(ano)
+      if(evaluateAno(ano)){
+        return(ano)
+      } else {
+        return(0)
+      }
+      
+      
+    }else {
+      return(0) ##  nao e possivel econtrar o ano
+    }
+  } else if (count == 2) {
+    if (getNidLength(new_nid) %in% c(13,14,15, 16, 17,18,19,20,21)) {   # ex 1100711/18/0729, 11030701/15/0023, 11030701/08/04676, 0110040701/19/0547
+      first_index <- stri_locate_first(new_nid, regex = "/")[[1]]
+      secon_index <- stri_locate_last(new_nid, regex = "/")[[1]]
+      ano <- substr(new_nid,first_index+1, secon_index - 1)
+      ano <- formatAno(ano)
+      if(evaluateAno(ano)){
+        return(ano)
+      } else {
+        return(0)
+      }
+    }else {
+      return(0) ##  nao e possivel econtrar o ano
+    }
+    
+  } else {
+    return(0) ##  nao e possivel econtrar o ano
+    
+  }
+  
+}
+
+
+#formata nids com 4,5,6,7 e 8 caracteres
+
+formatNidUmaBarraV1 <- function(nid) {
+  
+  
+  nid_formatado <-
+    paste0(getUsCode(nid), "/", getAnoNidV1(nid), "/", getNumSeqNidV1(nid))
+  nid_formatado # The same as return(nid_formatado)
+  
+  
+}
+
+#formata nids com 15,16,17 caracteres
+
+formatNidDuasBarrasV1 <- function(nid) {
+  nid_formatado <-
+    paste0(getUsCode(nid), "/",  getAnoNidV1(nid), "/", getNumSeqNidV1(nid))
+  nid_formatado # The same as return(nid_formatado)
+}
+
+
 
 
