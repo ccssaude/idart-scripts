@@ -15,18 +15,18 @@ getAllPatientsOpenMRS <- function(con.openmrs) {
         pat.patient_id, 
         pid.identifier , 
         pe.uuid,
-        lower(pn.given_name) given_name ,
-        lower(pn.middle_name) middle_name,
-        lower(pn.family_name) family_name,
+         pn.given_name  given_name ,
+         pn.middle_name middle_name,
+         pn.family_name  family_name,
         concat(lower(pn.given_name),' ' ,if(lower(pn.middle_name) is not null,concat( lower(pn.middle_name), ' ') ,' '),lower(pn.family_name)) as full_name_openmrs ,
         pe.birthdate,
         estado.estado as estado_tarv ,
         max(estado.start_date) data_estado,
         date(visita.encounter_datetime) as data_ult_levant,
         date(visita.value_datetime) as data_prox_marcado
-        FROM  patient pat INNER JOIN  patient_identifier pid ON pat.patient_id =pid.patient_id
-        INNER JOIN person pe ON pat.patient_id=pe.person_id
-        INNER JOIN person_name pn ON pe.person_id=pn.person_id and    pn.voided=0 and pid.preferred=1
+        FROM  patient pat INNER JOIN  patient_identifier pid ON pat.patient_id =pid.patient_id and pat.voided=0 and pid.preferred=1
+        INNER JOIN person pe ON pat.patient_id=pe.person_id and pe.voided=0 
+        INNER JOIN person_name pn ON pe.person_id=pn.person_id and    pn.voided=0
         LEFT JOIN
       		(
       			SELECT 	pg.patient_id,ps.start_date encounter_datetime,location_id,ps.start_date,ps.end_date,
@@ -126,7 +126,6 @@ getTotalDeDispensasPorPaciente  <- function(patient.id) {
   levPaciente$totaldispensas
 }
 
-
 #' Escreve  os logs das accoes executadas nas DBs iDART/OpenMRS numa tabela logsExecucao
 #' 
 #' @param patient.info informacao do paciente[id,uuid,patientid,openmrs_patient_id,full.name,index]   
@@ -141,6 +140,7 @@ logAction <- function (patient.info,action){
   # logsExecucao <<- rbind.fill(logsExecucao, temp)  gera registos multipos no log
   
 }
+
 
 #' Compoe um vector com dados do paciente que se vai actualizar
 #' 
@@ -158,7 +158,6 @@ composePatientToUpdate <- function(index,df){
   patient <- c(id,uuid,patientid,openmrs_patient_id,full.name,index)
   patient
 }
-
 #' Compoe um vector com dados do paciente para se utilizar na tabela dos logs
 #' 
 #' @param df tabela onde se vai extrair os dados 
@@ -307,21 +306,22 @@ getOpenmrsDefaultLocation <- function (openmrs.con){
   
 }
 
-#' Verifica se os ficheiros necessarios para executar as operacoes existem
+
+
+#' Busca o cod da US do openmrs
 #' 
-#' @param files  nomes dos ficheiros
-#'  @param dir  directorio onde ficam os files
-#' @return TRUE/FALSE
+#' @param df.openmrs df com dados dos pacientes do openrms   
+#' @return us.code codigo da US
 #' @examples
-#' default_loc = getOpenmrsDefaultLocation(con_openmrs)
-checkScriptsExists <- function (files, dir){
-for(i in 1:length(files)){
-  f <- files[i]
-  if(!file.exists(paste0(dir,f))){
-    message(paste0('Erro - Ficheiro ', f, ' nao existe em ',dir))
-    return(FALSE)
-  }
+#' us_code = getOpenmrsUsCode(openmrsAllpPatients)
+getOpenmrsUsCode<- function ( df.openmrs){
+  
+  nids_correctos <- df.openmrs$patientidSemLetras[which(nchar(df.openmrs$patientidSemLetras)==21)]
+  us_codes <- substr(nids_correctos, 0, stri_locate_first(nids_correctos, regex = "/")[[1]] -1 )
+  us_code <- sort(table(us_codes),decreasing=TRUE)[1][1]
+  us_code <- names(us_code)
+  return(us_code)
+  
 }
-  return(TRUE)
-}
+
 

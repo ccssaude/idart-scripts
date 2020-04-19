@@ -19,8 +19,8 @@ pd.birthdate as data_nasc,
             IF(inscrito_tarv.date_enrolled IS NULL,'NAO','SIM') inscrito_tarv,
              estado.estado AS estado_tarv,
              estado.start_date AS data_estado
-  FROM  patient pat INNER JOIN patient_identifier pid ON pat.patient_id =pid.patient_id
-  INNER JOIN person pe ON pat.patient_id=pe.person_id
+  FROM  patient pat INNER JOIN patient_identifier pid ON pat.patient_id =pid.patient_id and pat.voided=0 and pid.voided=0 and pid.preferred=1
+  INNER JOIN person pe ON pat.patient_id=pe.person_id and pe.voided=0
   INNER JOIN person_name pn ON pe.person_id=pn.person_id and pn.voided=0
 
   LEFT JOIN
@@ -151,11 +151,11 @@ getPacLevMenosRecente <- function(index, nid) {
     } 
      else {
     
-    index_pat_min_act <-
-      which(
-        dups_idart_openmrs$data_ult_levant == data_levanta_menos_rec &
-          dups_idart_openmrs$patientid == nid
-      )
+    index_pat_min_act <- index[  which(
+      dups_idart_openmrs[index, ]$data_ult_levant == data_levanta_menos_rec &
+        dups_idart_openmrs[index, ]$patientid == nid
+    )  ]
+     
     patient <-
       c(
         dups_idart_openmrs$id[index_pat_min_act],
@@ -200,10 +200,10 @@ getPacLevMaisRecente <- function(index, nid) {
       return(patient)
     } else {
       
-    index_pat_mais_rec <-
-      which((dups_idart_openmrs$data_ult_levant) == data_levanta_rec &
-              dups_idart_openmrs$patientid == nid
-      )
+    index_pat_mais_rec <- index[
+      which((dups_idart_openmrs[index,]$data_ult_levant) == data_levanta_rec &
+              dups_idart_openmrs[index,]$patientid == nid
+      ) ]
     patient <-
       c(
         dups_idart_openmrs$id[index_pat_mais_rec],
@@ -334,7 +334,7 @@ updatePatSameUuuidDifNid <- function(df.duplicados,con.postgres){
                         " , Apelido: ",dups_mesmo_uuid_nid_diff$family_name[v])
           logAction(patient.info = patient , action = solucao )
           
-          df.duplicados <-subset(df.duplicados, !(df.duplicados$id %in% dups_mesmo_uuid_nid_diff$id[v]),) 
+          df.duplicados <-subset(df.duplicados, !(df.duplicados$id %in% dups_mesmo_uuid_nid_diff$id[v]),'') 
           
         }
     }

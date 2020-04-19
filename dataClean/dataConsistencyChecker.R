@@ -1,43 +1,13 @@
-# Packages que contem algumas funcoes a serem usadas 
-require(RMySQL)
-require(plyr)    ## Este package contem a funcao rbind.fill para fazer union all de 2 dataframes (tabelas)
-require(stringi)
-require(RPostgreSQL)
-require(stringr)
-require(tidyr)
-require(stringdist)
-require(dplyr)  ## Este package contem a funcao inner_join
 
-####################################### Configuracao de Parametros  #####################################################################
-#########################################################################################################################################
-wd <- '~/R/iDART/idart-scripts/dataClean/'   ## dConfigure para qualquer directorio , e guardar o ficheiro helperFunctions.R neste dir
-setwd(wd)
+############################################################################################################################################
+## Este script Verifica pacientes sem uuid
 
-source('helperFunctions.R')  ## Carregar funcoes
-source('genericFunctions.R')
-source('nidRelatedFunctions.R')
-load(file = 'logsExecucao.R')
+source('paramConfiguration.R')           ## Carregar as configuracoes
+source('helper_functions_duplicated.R')  ## Carregar funcoes
+source('genericFunctions.R')             ## Carregar funcoes
+source('nidRelatedFunctions.R')  
+load(file = 'logsExecucao.Rdata')
 
-
-## OpenMRS Stuff - Configuracoes de variaveis de conexao 
-openmrs.user ='esaude'
-openmrs.password='esaude'
-openmrs.db.name='openmrs'
-openmrs.host='192.168.100.100'
-openmrs.port=3306
-us.code= '0111030701' # modificar este parametro para cada US. Este e o Cod da US definido pelo MISAU e geralmente e a primeira parte do NID
-# Objecto de connexao com a bd openmrs
-con_openmrs = dbConnect(MySQL(), user=openmrs.user, password=openmrs.password, dbname=openmrs.db.name, host=openmrs.host, port=openmrs.port)
-
-
-# iDART Stuff - Configuracoes de variaveis de conexao 
-postgres.user ='postgres'
-postgres.password='postgres'
-postgres.db.name='pharm'
-postgres.host='192.168.100.100'
-postgres.port=5432
-# Objecto de connexao com a bd openmrs postgreSQL
-con_postgres <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres.password, dbname = postgres.db.name,host = postgres.host)
 
 ############################################################################################################################################
 
@@ -57,7 +27,9 @@ idartAllPatients <- getAllPatientsIdart(con_postgres)
 ## Como Resolver?  E necessario analisar caso por caso
 ## TODO
 patientWithDifferentUuid <- subset(idartAllPatients, idartAllPatients$uuid!=idartAllPatients$uuidopenmrs)
-
+if(dim(patientWithDifferentUuid)[1]==0){
+  rm(patientWithDifferentUuid)
+} 
 ## patientsWoutUuid
 ## Sao todos Pacientes Sem uuid no iDART: uuid is null
 patientsWoutUuid <-  subset(idartAllPatients, is.na(idartAllPatients$uuid) | nchar(idartAllPatients$uuid)==0,)
@@ -75,15 +47,13 @@ patientsRefferedTransit <-  subset(patientsWoutUuid, (patientsWoutUuid$startreas
 ##  no dataframe/tabela patientsRefferedTransit 
 dfTemp <- patientsWoutUuid[which(grepl(pattern = "TR",ignore.case = TRUE,x=patientsWoutUuid$patientid)==TRUE),]
 
-if (! is.null(dfTemp) ) { # verifica se o script em cima retorou algo 
   
   if (dim(dfTemp)[1] != 0) { # verifica se a variavel tem dados, se tiver juntar/append/union
     
     patientsRefferedTransit <- rbind.fill(patientsRefferedTransit,dfTemp)
     rm(dfTemp)
-  }
+  } else {    rm(dfTemp)}
   
-}
 
 
 ## patientsWoutUuid
@@ -91,7 +61,7 @@ if (! is.null(dfTemp) ) { # verifica se o script em cima retorou algo
 ## De modo a nos concentrar somente nos provaveis pacientes activos que nao tem uuid 
 ## Usei a a clausula not in ! %in%
 patientsWoutUuid <-subset(patientsWoutUuid, !(patientsWoutUuid$id %in% patientsRefferedTransit$id),)  
-
+rm(patientsRefferedTransit)
 
 
 ## Ja removemos pacientes em trasito do grupo de pacientes se UUID
@@ -107,7 +77,9 @@ totalPacSemUuidRegOpenMRS <- length(which(patientsWoutUuid$patientid %in% openmr
 
 if(totalPacSemUuidRegOpenMRS>0){
   
-  print(paste0("Temos ", totalPacSemUuidRegOpenMRS , " Pacientes iDART sem UUID  registados no OpenMRS"))
+  message(paste0("Temos ", totalPacSemUuidRegOpenMRS , " Pacientes iDART sem UUID  registados no OpenMRS"))
+  
+  
   ## pacSemUuidRegOpenMRS
   ## Sao Paciente do iDART sem uuid,  Registado no OpenMRS ( comparacao com base no NID)
   pacSemUuidRegOpenMRS <- patientsWoutUuid[which(patientsWoutUuid$patientid %in% openmrsAllPatients$identifier),]
@@ -128,6 +100,13 @@ if(totalPacSemUuidRegOpenMRS>0){
        actualizaUuidIdart(con_openmrs,patient)
 
     }
+    
+    
+    ## patientsWoutUuid
+    ## Remover os pacientes encontrados na query anterior do dataframe pacSemUuidRegOpenMRS,
+    ## De modo a usar outras tecnicas de verificacao 
+    patientsWoutUuid <<- subset(patientsWoutUuid, !(patientsWoutUuid$id %in% pacSemUuidRegOpenMRS$id),)  
+    
   }
    
 
@@ -135,10 +114,6 @@ if(totalPacSemUuidRegOpenMRS>0){
   
 
 
-## patientsWoutUuid
-## Remover os pacientes encontrados na query anterior do dataframe pacSemUuidRegOpenMRS,
-## De modo a usar outras tecnicas de verificacao 
-patientsWoutUuid <-subset(patientsWoutUuid, !(patientsWoutUuid$id %in% pacSemUuidRegOpenMRS$id),)  
 
 
 
@@ -159,7 +134,7 @@ patientsWoutUuid$totaldispensas[which(is.na(patientsWoutUuid$totaldispensas))] <
 ## De modo a usar outras tecnicas de verificacao 
 patSemUuidProvaveisTransito <- subset(patientsWoutUuid, patientsWoutUuid$totaldispensas<=3 )
 patientsWoutUuid  <-subset(patientsWoutUuid, !(patientsWoutUuid$id %in% patSemUuidProvaveisTransito$id),) 
-
+rm(patSemUuidProvaveisTransito)
 
 
 ################### 3 -Procurar os pacientes sem uuids no OpenMRS atraves de algoritmos de simetria de nomes    ###################

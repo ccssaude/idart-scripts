@@ -91,7 +91,6 @@ actualizaNidiDART <-   function(con.idart, patient.to.update,new.nid) {
         " ;"
       )
     ) 
-    #ect * from packagedruginfotmp where patientid  = '0111040601/2018/00018' and patientfirstname = 'Francisca' and patientlastname='Rassul'
     # A tabela packedruginfotemp e uma tabela de descarga apenas
     dbExecute(
       con.idart,
@@ -106,12 +105,14 @@ actualizaNidiDART <-   function(con.idart, patient.to.update,new.nid) {
         "' ;") )
       
     
-    logAction(patient.info = patient.to.update,action = paste0('iDART- NID:',patient.to.update[3], ' - ',patient.to.update[5], ' na tabela patient/public.patientidentifier/public.packagedruginfotmp  mudou para: ', new.nid))
+    logAction(patient.info = patient.to.update,action = paste0('iDART- NID:',patient.to.update[3], ' - ',patient.to.update[5],
+                                                               ' na tabela patient/public.patientidentifier/public.packagedruginfotmp  mudou para: ',new.nid))
     
     return(1)
   },
   error = function(cond) {
-    msg <- paste0("iDART - patient/public.patientidentifier/public.packagedruginfotmp Nao foi possivel Actualizar o NID  ":patient.to.update[3], ' - ',patient.to.update[5], ' Para :', new.nid,  ' Erro: ', as.character(cond))
+    msg <- paste0("iDART - patient/public.patientidentifier/public.packagedruginfotmp Nao foi possivel Actualizar o NID  ":patient.to.update[3],
+                  ' - ',patient.to.update[5], ' Para :', new.nid,  ' Erro: ', as.character(cond))
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -166,13 +167,15 @@ actualizaNidOpenMRS <-   function(con.openmrs, patient.to.update,new.nid) {
     )
     
     openmrs <<- TRUE
-    logAction(patient.info = patient.to.update,action = paste0('OpenMRS NID:',patient.to.update[3], ' - ',patient.to.update[5], ' na tabela patient_identifier mudou para: ', new.nid))
+    logAction(patient.info = patient.to.update,action = paste0('OpenMRS NID:',patient.to.update[3], ' - ',patient.to.update[5], 
+                                                               ' na tabela patient_identifier mudou para: ',new.nid))
     
     
     
   },
   error = function(cond) {
-    msg <- paste0("OpenMRS - Tabela patient_identifier Nao foi possivel Actualizar o NID  ":patient.to.update[3],  ' - ',patient.to.update[5],' Para :', new.nid,  ' Erro: ', as.character(cond))
+    msg <- paste0("OpenMRS - Tabela patient_identifier Nao foi possivel Actualizar o NID  ":patient.to.update[3], 
+                  ' - ',patient.to.update[5],' Para :', new.nid,  ' Erro: ', as.character(cond))
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -560,7 +563,7 @@ getNewNidV1 <- function(old.nid) {
     new_us_cod <- changeUsCode(us_code)
     nid_formatado <-
       paste0(new_us_cod, "/",  getAnoNidV1(new_nid), "/", getNumSeqNidV1(new_nid))
-    nid_formatado # The same as return(nid_formatado)
+    return(nid_formatado) 
   } else { 
     
     return(new_nid)
@@ -647,7 +650,10 @@ formatSequencia <- function(seq) {
     return(newSequencia)
   }  else  if (nchar(seq) == 5) {
     return(seq)
-  }else {
+  }else  if (nchar(seq) == 6) {
+    newSequencia <- substr( seq, 2,nchar(seq))
+    return(newSequencia)
+  } else {
     return(0)
   }
   
@@ -919,5 +925,28 @@ formatNidDuasBarrasV1 <- function(nid) {
 }
 
 
+
+
+
+#' Verifica se um determinado nid formatado existe na BD OpenMRS/iDART
+#' 
+#' @param openmrs.con objecto de conexao com mysql    
+#' @return us_default_locatoion
+#' @examples
+#' status = checkNidExistsOpenmrsIdart('0111040201/2019/20384')
+checkNidExistsOpenmrsIdart <- function (nid){
+  if(nid %in% idartAllPatients$patientid){
+    if(nid %in% openmrsAllPatients$identifier){
+      return("existe_openmrs_idart")
+    }else{     
+      return("existe_idart")}
+
+  }else if(nid %in% openmrsAllPatients$identifier){
+    return("existe_openmrs")
+  }else {
+    return("nao_existe")
+  }
+  
+}
 
 
