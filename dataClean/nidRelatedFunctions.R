@@ -28,7 +28,7 @@ actualizaUuidIdart <-   function(con.idart, patient.to.update) {
     
   },
   error = function(cond) {
-    msg <- paste0("iDART - public.patient Nao foi possivel Actualizar o NID  ":patient.to.update[3], ' Para  uuid= ',  patient.to.update[2],  ', Erro: ', as.character(cond))
+    msg <- paste0(" Error iDART - public.patient Nao foi possivel Actualizar o NID  ":patient.to.update[3], ' Para  uuid= ',  patient.to.update[2],  ', Erro: ', as.character(cond))
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -111,7 +111,94 @@ actualizaNidiDART <-   function(con.idart, patient.to.update,new.nid) {
     return(1)
   },
   error = function(cond) {
-    msg <- paste0("iDART - patient/public.patientidentifier/public.packagedruginfotmp Nao foi possivel Actualizar o NID  ":patient.to.update[3],
+    msg <- paste0("Error iDART - patient/public.patientidentifier/public.packagedruginfotmp Nao foi possivel Actualizar o NID  ":patient.to.update[3],
+                  ' - ',patient.to.update[5], ' Para :', new.nid,  ' Erro: ', as.character(cond))
+    #message(msg) imprimir a mgs a consola
+    logAction(patient.info = patient.to.update,action = msg)
+    # Choose a return value in case of error
+    return(0)
+  },
+  warning = function(cond) {
+    message("Here's the original warning message:")
+    message(cond)
+    # Choose a return value in case of warning
+    return(1)
+  },
+  finally = {
+    # NOTE:
+    # Here goes everything that should be executed at the end,
+    # regardless of success or error.
+    # If you want more than one expression to be executed, then you
+    # need to wrap them in curly brackets ({...}); otherwise you could
+    # just have written 'finally=<expression>'
+    
+  })
+  
+  return(idart)
+  
+}
+
+
+
+
+#' Actualiza Nomes & NIds na tabela Patient/Patient identifier & packagedrug_info_temp.
+#' 
+#' @param con.idart conexao com  a PostgresSQL- iDART.
+#' @param patient.to.update vector[id,uuid,patientid,openmrs_patient_id,full.name]  Informacao do paciente a ser actualizado.
+#' @param new.nid Novo NID do paciente a ser actualizado.
+#' @return 1, 0.
+#' @examples
+#' pat <- c('1,'32435sd-3435sd-35353-wvadfw2-43gf54',0111030701,,'Agostionho Banze)
+#' actualizaNidiDART(con_idart, pat ,'0111030701/2016/00087')
+#' 
+actualizaNidNomeiDART <-   function(con.idart, patient.to.update,new.nid) {
+  
+  idart <- tryCatch({
+    
+    message(paste0( "iDART - Actualizando dados do paciente: ",patient.to.update[3] , ' - ',patient.to.update[5], " para NID:", new.nid,': ',patient.to.update[7],'_',patient.to.update[8]  ) )
+    
+    dbExecute(
+      con.idart,
+      paste0(
+        "update  public.patientidentifier set value ='",
+        new.nid,
+        "' where patient_id = ",
+        as.numeric(patient.to.update[1]),
+        " ;"
+      )
+    )
+    dbExecute(
+      con.idart,
+      paste0(
+        "update  public.patient set patientid = '",
+        new.nid,
+        "' firstnames = '",
+        patient.to.update[7],
+        "' , lastname = '",
+        patient.to.update[8],
+        "' where id = ",
+        as.numeric(patient.to.update[1]),
+        " ;"
+      )
+    ) 
+    # A tabela packedruginfotemp e uma tabela de descarga apenas
+    dbExecute(
+      con.idart,
+      paste0(
+        "update  public.packagedruginfotmp set patientid = '",
+        new.nid,
+        "' where patientid = '",
+        patient.to.update[3], 
+        "' ;") )
+    
+    
+    logAction(patient.info = patient.to.update,action = paste0('iDART- NID:',patient.to.update[3], ' - ',patient.to.update[5],
+                                                               ' na tabela patient/public.patientidentifier/public.packagedruginfotmp  mudou para: ',new.nid,': ',patient.to.update[7],'_',patient.to.update[8] ))
+    
+    return(1)
+  },
+  error = function(cond) {
+    msg <- paste0("Error iDART - patient/public.patientidentifier/public.packagedruginfotmp Nao foi possivel Actualizar o NID  ":patient.to.update[3],
                   ' - ',patient.to.update[5], ' Para :', new.nid,  ' Erro: ', as.character(cond))
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
@@ -147,7 +234,7 @@ actualizaNidiDART <-   function(con.idart, patient.to.update,new.nid) {
 #' @examples
 #' pat <- c('1,'32435sd-3435sd-35353-wvadfw2-43gf54',0111030701,,'Agostionho Banze)
 #' actualizaNidOpenMRS(con_idart, pat ,'0111030701/2016/00087')
-#' 
+#'
 actualizaNidOpenMRS <-   function(con.openmrs, patient.to.update,new.nid) {
   
   openmrs = TRUE
@@ -174,7 +261,7 @@ actualizaNidOpenMRS <-   function(con.openmrs, patient.to.update,new.nid) {
     
   },
   error = function(cond) {
-    msg <- paste0("OpenMRS - Tabela patient_identifier Nao foi possivel Actualizar o NID  ":patient.to.update[3], 
+    msg <- paste0("Error OpenMRS - Tabela patient_identifier Nao foi possivel Actualizar o NID  ":patient.to.update[3], 
                   ' - ',patient.to.update[5],' Para :', new.nid,  ' Erro: ', as.character(cond))
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
@@ -200,6 +287,8 @@ actualizaNidOpenMRS <-   function(con.openmrs, patient.to.update,new.nid) {
   openmrs
   
 }
+
+
 
 #' Extract  o numero de sequencia do NID
 #' 
@@ -485,12 +574,12 @@ formatNidDuasBarras <- function(nid) {
   nid_formatado # The same as return(nid_formatado)
 }
 
-#' Atribui um novo nid apartir do antigo,  agrupa os pacientes do ano  e buscando o ultimo numero de seq 
-#' depois acrecenta +1 ao numero de seq e forma um nid novo que nao existe na BD
+#' Atribui um novo nid apartir do antigo, Troca o codigo de servico
+#' se for 01 troca para 02
 #' @param old.nid nid  do paciente que se vai atribuir novo nid
 #' @return  novo nid  
-#' @examples getNewNidNewSeq(0111030701/2010/00195) retorna 01111030701/2010/(ult_seq+1)
-#' @examples getNewNidNewSeq( 2145/11) retorna 01111030701/2011/(ult_seq+1)
+#' @examples getNewNidNewSeq(0111030701/2010/00195) retorna 01111030702/2010/(00195)
+#' @examples getNewNidNewSeq( 2145/11) retorna 01111030701/2011/2145
 getNewNidNewSeq <- function(old.nid, df.openmrs.patients) {
   
   prox_seq <- getProxSequenciaNid(old.nid,df.openmrs.patients)
@@ -515,12 +604,12 @@ getNewNidNewSeq <- function(old.nid, df.openmrs.patients) {
 
 }
 
-#' Atribui um novo nid apartir do antigo,  trocando o cod de servico ou formatando obdecendo o 
-#' padrao do MISAU (Valido para US com nids no formato seq/ano : ex 384/12 ,1245/06)
+#' Atribui um novo nid apartir do antigo, Troca o codigo de servico
+#' se for 01 troca para 02. se estiver incompleto formata
 #' @param old.nid nid  do paciente que se vai atribuir novo nid
 #' @return  novo nid  
-#' @examples getNewNid(0111030701/2010/00195) retorna 0111030702/2010/00195
-#' @examples getNewNid( 2145/11) retorna 01111030701/2011/2145
+#' @examples getNewNidNewSeq(0111030701/2010/00195) retorna 01111030702/2010/(00195)
+#' @examples getNewNidNewSeq( 2145/11) retorna 01111030701/2011/2145
 getNewNid <- function(old.nid) {
   
   antigo <- old.nid
@@ -948,5 +1037,3 @@ checkNidExistsOpenmrsIdart <- function (nid){
   }
   
 }
-
-

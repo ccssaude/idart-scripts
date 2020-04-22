@@ -90,7 +90,6 @@ getDuplicatesPatiDART <- function(connection)  {
   select
   pat.id, 
   pat.uuid,
-  pat.uuidopenmrs,
   pat.patientid,dateofbirth::TIMESTAMP::DATE as dateofbirth,
   lower(pat.firstnames) as firstnames , 
   lower(pat.lastname) as lastname , 

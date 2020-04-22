@@ -1,26 +1,16 @@
 
-############################################################################################################################################
-## Este script Verifica pacientes sem uuid
 
 source('paramConfiguration.R')           ## Carregar as configuracoes
-source('helper_functions_duplicated.R')  ## Carregar funcoes
-source('genericFunctions.R')             ## Carregar funcoes
-source('nidRelatedFunctions.R')  
-load(file = 'logsExecucao.Rdata')
 
 
-############################################################################################################################################
 
-## Pacientes
-## Buscar todos pacientes OpenMRS & iDART
-openmrsAllPatients <- getAllPatientsOpenMRS(con_openmrs)
-idartAllPatients <- getAllPatientsIdart(con_postgres)
+
 
 
 ## patientsWithUuid
 ## Sao todos Pacientes no iDART que tem a coluna uuid preecnhida 
 ## uuid e' usado na versao idart ccs para fazer a sincronizacao , enquanto que a nova versao passa a usar a variavel uuidopenmrs
- patientsWithUuid <- subset(idartAllPatients, nchar(idartAllPatients$uuid)>0)
+## patientsWithUuid <- subset(idartAllPatients, nchar(idartAllPatients$uuid)>0)
 
 ## patientWithDifferentUuid
 ## Sao  Pacientes  com a variavel uuid  diferente de uuidopenmrs  no iDART uuid!=uuidopenmrs
@@ -114,9 +104,6 @@ if(totalPacSemUuidRegOpenMRS>0){
   
 
 
-
-
-
 ## Aseguir vemps executar:
 ################### 2 - Para cada paciente verificar o nr de total de dispensas. podemos assumir que   ###################
 ###################     os que tiverem totalDispensas <= 3  sao Transitos Mal registados              ###################
@@ -142,30 +129,47 @@ rm(patSemUuidProvaveisTransito)
 ###################  dos pacientes do iDART, Pois no OpenMRS temos given_name, midle_name , family_name            # ################                                                                        ###################
 ###############################################################################################################################
 
-## O nome mais proximo encotrado no openmrs aplicando algoritmo de simetria de nomes
 
 
 patientsWoutUuid$full_name <- str_replace_na(paste0(patientsWoutUuid$firstnames, ' ',patientsWoutUuid$lastname),replacement=' ')
 
- 
-# 
-# for(i in 1:dim(temp_df)[1]){
-#   
-#   nome_idart <- temp_df$full_name[i]
-#   
-#   ## Pacientes no openMRScom o nome mais prox. de nome_idart
-#   ## Aplicando o algoritimo  de simetria de strings com o method :  Jaro-Winker distance ver  https://cran.r-project.org/web/packages/stringdist/stringdist.pdf pag 19 & https://pt.wikipedia.org/wiki/Dist%C3%A2ncia_de_Jaro-Winkler
-#   dist_minima <- min(stringdist(nome_idart, openmrsAllPatients$full_name, method = "jw"))
-#   prox_matched <- openmrsAllPatients[which(stringdist(nome_idart, openmrsAllPatients$full_name, method = "jw")==dist_minima),]
-#   temp_df$nome_aprox_openmrs[i] <- prox_matched$full_name[1]
-#   temp_df$nid_nome_aprox_openmrs[i] <- prox_matched$identifier[1]
-#   temp_df$birthdate_openmrs[i] <- prox_matched$birthdate[1]
-#   temp_df$dist_de_aproximacao[i] <- round(as.numeric(dist_minima),digits = 4)
-#   temp_df$uuid_openmrs[i] <- prox_matched$uuid[1]
-#   temp_df$estado_tarv_openmrs[i] <- prox_matched$estado_tarv[1]
-#   
-# }
+df_nomes_openmrs <- openmrsAllPatients[, c('uuid','patient_id','identifier','full_name_openmrs','estado_tarv','data_ult_levant')]
+df_nomes_openmrs$distancia  <- ''
 
 
+patientsWoutUuid$prov_openmrs_name  <- ''
+patientsWoutUuid$prov_openmrs_uuid   <- ''
+patientsWoutUuid$prov_openmrs_identifier  <- ''
+patientsWoutUuid$prov_openmrs_patient_id  <- ''
+patientsWoutUuid$prov_openmrs_estado_tarv  <- ''
+patientsWoutUuid$prov_openmrs_data_ult_levant  <- ''
+patientsWoutUuid$distancia  <- ''
+
+
+
+for (i in 1:dim(patientsWoutUuid)[1]) {
+  
+  for( v in 1:dim(df_nomes_openmrs)[1]){
+    
+    df_nomes_openmrs$distancia[v] <- stringdist(patientsWoutUuid$full_name[i],df_nomes_openmrs$full_name_openmrs[v], method = "jw")
+    
+    
+  }
+  temp <- df_nomes_openmrs[which(df_nomes_openmrs$distancia == min(df_nomes_openmrs$distancia)),]
+  
+  patientsWoutUuid$prov_openmrs_name[i] <-  temp$full_name_openmrs[1]
+  patientsWoutUuid$prov_openmrs_uuid [i] <-  temp$uuid[1]
+  patientsWoutUuid$prov_openmrs_identifier[i] <-  temp$identifier[1]
+  patientsWoutUuid$prov_openmrs_patient_id[i] <-  temp$patient_id[1]
+  patientsWoutUuid$prov_openmrs_estado_tarv[i] <-  temp$estado_tarv[1]
+  patientsWoutUuid$prov_openmrs_data_ult_levant[i] <-  temp$data_ult_levant[1]
+  patientsWoutUuid$distancia[i] <-  temp$distancia[1] 
+
+}
+
+
+
+
+rm(df_nomes_openmrs)
 
 

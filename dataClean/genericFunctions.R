@@ -87,7 +87,7 @@ getAllPatientsIdart <- function(con.postgres) {
       con.postgres,
       paste0(
         "select pat.id, pat.patientid,dateofbirth::TIMESTAMP::DATE as dateofbirth,lower(pat.firstnames) as firstnames , 
-        pat.sex, lower(pat.lastname) as lastname ,pat.uuid,pat.uuidopenmrs, ep.startreason,
+        pat.sex, lower(pat.lastname) as lastname ,pat.uuid, ep.startreason,
         dispensas.total as totalDispensas
         from patient pat left join
         (
@@ -142,7 +142,7 @@ logAction <- function (patient.info,action){
 }
 
 
-#' Compoe um vector com dados do paciente que se vai actualizar
+#' Compoe um vector com dados do paciente que se vai actualizar/ Correcao de duplicados
 #' 
 #' @param df tabela de duplicados para extrair os dados do Pat
 #' @param index row do paciente em causa 
@@ -156,6 +156,34 @@ composePatientToUpdate <- function(index,df){
   openmrs_patient_id =df$patient_id[index]
   full.name =  df$full_name[index]
   patient <- c(id,uuid,patientid,openmrs_patient_id,full.name,index)
+  patient
+}
+
+
+#' Compoe um vector com dados do paciente que se vai actualizar/ Formatacao de NIDS
+#' 
+#' @param df tabela de duplicados para extrair os dados do Pat
+#' @param index row do paciente em causa 
+#' @return vector[id,uuid,patientid,openmrs_patient_id,full.name,index,given_name+midle_name,family_name] 
+#' @examples composePatientToUpdate(67, nids_dups)
+composePatientToUpdateNomeNid <- function(index,df){
+  
+  id = df$id[index]
+  uuid = df$uuid[index]
+  patientid = df$patientid[index]
+  openmrs_patient_id =df$patient_id[index]
+  full.name =  df$full_name[index]
+  middle_name =df$middle_name[index]
+  if(is.na(middle_name))
+  { given_name = df$given_name[index]}
+  else{
+    
+    given_name = gsub(pattern = 'NA', replacement = '',x = paste0(df$given_name[index],' ',df$middle_name[index]))
+  }
+ 
+  family_name = df$family_name[index]
+  openmrs_patient_id =df$patient_id[index]
+  patient <- c(id,uuid,patientid,openmrs_patient_id,full.name,index,given_name,family_name)
   patient
 }
 #' Compoe um vector com dados do paciente para se utilizar na tabela dos logs
@@ -241,12 +269,6 @@ beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients ,
         actualizaNidOpenMRS(con.openmrs = con.openmrs,patient.to.update = patient_to_update,new.nid = new.nid.act)
         
       }
-      else{
-        
-        logAction(patient_to_update, paste0('PostgreSQL -  Nao foi Actualizar o NID no iDART:',patient_to_update[3]))
-        
-      }
-      
       
     }
     else if (checkIfExistsNidOpenMRS(new.nid.act,df.openmrs.patients) ){
@@ -256,11 +278,6 @@ beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients ,
       
       if(status_act_idart==1){
         actualizaNidOpenMRS(con.openmrs = con.openmrs,patient.to.update = patient_to_update,new.nid = new.nid.act)
-        
-      }
-      else{
-        
-        logAction(patient_to_update, paste0('PostgreSQL - Nao foi Actualizar o NID no iDART:',patient_to_update[3]))
         
       }
       
@@ -273,11 +290,7 @@ beginUpdateProcess <- function(new.nid.act,patient_to_update,df.idart.patients ,
         actualizaNidOpenMRS(con.openmrs = con.openmrs,patient.to.update = patient_to_update,new.nid = new.nid.act)
         
       }
-      else{
-        
-        logAction(patient_to_update, paste0('PostgreSQL -  Nao foi Actualizar o NID no iDART:',patient_to_update[3]))
-        
-      }
+
     }
   } 
   else{
@@ -323,5 +336,82 @@ getOpenmrsUsCode<- function ( df.openmrs){
   return(us_code)
   
 }
+
+
+
+#' Busca a maior frequencia da posicao da barra / nos nids mal formatados
+#' Ano/Seq  (934/11) ou Seq/Ano (11/934)
+#' 
+#' @param vec cevotr com todos os dados dos pacientes do openrms   
+#' @return pos posicao da barra do nid
+#' #' @examples
+#' pos = getMaxPosBarraVec(c('12/45','12/1342','12/34412','12345/23','12346/12','12345/15','12345/14')) retorna 6
+getMaxPosBarraVec<- function (vec ){
+  
+  
+  if(length(vec)!=0){
+    temp <- as.list( stri_locate_first(vec, regex = "/") )
+    b = table(unlist(temp))
+    max_pos= names(subset(b, b==max(b),c(,1)))
+    max_pos=as.integer(max_pos)
+    if(length(max_pos)==2){
+      
+      return(min(max_pos)[1])
+    } 
+    max_pos
+    
+  }else{ return(0)}
+  
+  
+}
+
+
+#' Busca o tipo de sequencia de nids mal registados 
+#' Ano/Seq  (934/11) ou Seq/Ano (11/934)
+#' 
+#' @param df df com dados dos pacientes do openrms   
+#' @param nr_char tamanho do nid mal formatado  
+#' @return pos posicao da barra do nid
+#' #' @examples
+#' seq = getTipoSeqNidUs(openmrsAllPatients)
+getTipoSeqNidUs <- function (df) {
+  var_test_1 = 6
+  var_test_2 = 7   # Nids com 7  caracters
+  
+  vec_nids_6 <-
+    df$patientidSemLetras[which(nchar(df$patientidSemLetras) == var_test_1)] # Nids com 6 caracters
+  vec_nids_7 <-
+    df$patientidSemLetras[which(nchar(df$patientidSemLetras) == var_test_2)]
+  
+  pos_nid_6 <- getMaxPosBarraVec(vec_nids_6)
+  pos_nid_7 <- getMaxPosBarraVec(vec_nids_7)
+  
+  if (pos_nid_7 != 0) {
+    if (pos_nid_7 == 5) {
+      return('Seq/Ano')
+    } else if (pos_nid_7 == 3) {
+      return('Ano/Seq')
+    }
+  } else {
+    if (pos_nid_6 != 0) {
+      if (pos_nid_6 == 4) {
+        return('Seq/Ano')
+      } else if (pos_nid_6 == 3) {
+        return('Ano/Seq')
+      } else {
+        return('Ano/Seq_')
+      } # default nao conseguimos encontrar nids com 6 ou 7 caracteres
+      
+    } else {
+      return('Ano/Seq_')
+    }  # default nao conseguimos encontrar nids com 6 ou 7 caracteres
+    
+    
+  }
+  
+}
+
+
+
 
 

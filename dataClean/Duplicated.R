@@ -51,31 +51,27 @@
 ################################  Grupo 4 (G4): Pacientes  Triplicados############                                                                ############ 
 ############ 
 ## Grupo   4.1 (G4.1):  - Dos 3 pacientes 2 tem dados iguais                                                                                      ############ 
-## Solucao 4.1 (G4.1):-CM  Unir  os paciente com os dados iguais                                                                                     ############ 
+## Solucao 4.1 G4.1:-CM  Unir  os paciente com os dados iguais                                                                                     ############ 
 ############ 
 ##############################################################################################################################################################
 ##############################################################################################################################################################
+# canico
+# junho
+# Maio
+# abazine
+# Bagamio
+# magoanine
+# Maio 
+# Porto
+
+
+source('paramConfiguration.R')                     ##  1 -Carregar as configuracoes
 
 
 
-source('paramConfiguration.R')                     ## Carregar as configuracoes
 
-
-
-
-
-      ## Pacientes
-      ## Buscar todos pacientes OpenMRS & iDART
-      openmrsAllPatients <- getAllPatientsOpenMRS(con_openmrs)
-      openmrsAllPatients$identifierSemLetras <- sapply(openmrsAllPatients$identifier, removeLettersFromNid)   
-      idartAllPatients <- getAllPatientsIdart(con_postgres)
-      idartAllPatients$patientidSemLetras <- sapply(idartAllPatients$patientid, removeLettersFromNid)    
-      openmrsAllPatients$patientidSemLetras <- sapply(openmrsAllPatients$identifier, removeLettersFromNid)   
-      
-      
-      # Busca o codigo da US
-      us.code= getOpenmrsUsCode(openmrsAllPatients)                 
-      
+##############################################################################################################################################################
+##############################################################################################################################################################      
       
       ## Pacientes Duplicados Por NID iDART & OpenMRS
       duplicadosOpenmrs <- getDuplicatesPatOpenMRS(con_openmrs)
@@ -128,12 +124,12 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
                   patient_to_update <- getPacLevMenosRecente(index,nid = nid_duplicado)
                   new_nid = 0
                   
-                  if(tipo_nid=='seq/ano'){
+                  if(tipo_nid=='Seq/Ano'){
                     new_nid <- getNewNid(patient_to_update[3])  
-                  }else if(tipo_nid=='ano/seq')
+                  }else if(tipo_nid=='Ano/Seq')
                   { new_nid <- getNewNidV1(patient_to_update[3])    }
                   else {
-                    message(" Nao especificou o tipo de NID  (ano/seq   ou seq/ano) no ficheiro de config paramConfiguration.R)")
+                    message(" Nao especificou o tipo de NID  (Ano/Seq   ou Seq/Ano) no ficheiro de config paramConfiguration.R)")
                      break
                     }
 
@@ -157,12 +153,12 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
                     patient_to_update <- getPacLevMenosRecente(index,nid = nid_duplicado)
                     new_nid = 0
                     
-                    if(tipo_nid=='seq/ano'){
+                    if(tipo_nid=='Seq/Ano'){
                       new_nid <- getNewNid(patient_to_update[3])  
-                    }else if(tipo_nid=='ano/seq')
+                    }else if(tipo_nid=='Ano/Seq')
                     { new_nid <- getNewNidV1(patient_to_update[3])    }
                     else {
-                      message(" Nao especificou o tipo de NID  (ano/seq   ou seq/ano) no ficheiro de config paramConfiguration.R)")
+                      message(" Nao especificou o tipo de NID  (Ano/Seq   ou Seq/Ano) no ficheiro de config paramConfiguration.R)")
                       break
                     }
                     if( 0 != new_nid){
@@ -176,12 +172,12 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
                     patient_to_update <- getPacInactivo(index=index,nid = nid_duplicado)
                     new_nid = 0
                     
-                    if(tipo_nid=='seq/ano'){
+                    if(tipo_nid=='Seq/Ano'){
                       new_nid <- getNewNid(patient_to_update[3])  
-                    }else if(tipo_nid=='ano/seq')
+                    }else if(tipo_nid=='Ano/Seq')
                     { new_nid <- getNewNidV1(patient_to_update[3])    }
                     else {
-                      message(" Nao especificou o tipo de NID  (ano/seq   ou seq/ano) no ficheiro de config paramConfiguration.R)")
+                      message(" Nao especificou o tipo de NID  (Ano/Seq   ou Seq/Ano) no ficheiro de config paramConfiguration.R)")
                       break
                     }
                     if( 0 != new_nid){
@@ -196,12 +192,12 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
                   patient_to_update <- getPacLevMenosRecente(index,nid = nid_duplicado)
                   new_nid = 0
                   
-                  if(tipo_nid=='seq/ano'){
+                  if(tipo_nid=='Seq/Ano'){
                     new_nid <- getNewNid(patient_to_update[3])  
-                  }else if(tipo_nid=='ano/seq')
+                  }else if(tipo_nid=='Ano/Seq')
                   { new_nid <- getNewNidV1(patient_to_update[3])    }
                   else {
-                    message(" Nao especificou o tipo de NID  (ano/seq   ou seq/ano) no ficheiro de config paramConfiguration.R)")
+                    message(" Nao especificou o tipo de NID  (Ano/Seq   ou Seq/Ano) no ficheiro de config paramConfiguration.R)")
                     break
                   }  
                   if( 0 != new_nid){
@@ -219,12 +215,12 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
                       patient_to_update <- getPacLevMenosRecente(index,nid = nid_duplicado)
                       new_nid = 0
                       
-                      if(tipo_nid=='seq/ano'){
+                      if(tipo_nid=='Seq/Ano'){
                         new_nid <- getNewNid(patient_to_update[3])  
-                      }else if(tipo_nid=='ano/seq')
+                      }else if(tipo_nid=='Ano/Seq')
                       { new_nid <- getNewNidV1(patient_to_update[3])    }
                       else {
-                        message(" Nao especificou o tipo de NID  (ano/seq   ou seq/ano) no ficheiro de config paramConfiguration.R)")
+                        message(" Nao especificou o tipo de NID  (Ano/Seq   ou Seq/Ano) no ficheiro de config paramConfiguration.R)")
                         break
                       }
                       if( 0 != new_nid){
@@ -239,12 +235,12 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
                       patient_to_update <- getPacInactivo(index,nid = nid_duplicado)
                       new_nid = 0
                       
-                      if(tipo_nid=='seq/ano'){
+                      if(tipo_nid=='Seq/Ano'){
                         new_nid <- getNewNid(patient_to_update[3])  
-                      }else if(tipo_nid=='ano/seq')
+                      }else if(tipo_nid=='Ano/Seq')
                       { new_nid <- getNewNidV1(patient_to_update[3])    }
                       else {
-                        message(" Nao especificou o tipo de NID  (ano/seq   ou seq/ano) no ficheiro de config paramConfiguration.R)")
+                        message(" Nao especificou o tipo de NID  (Ano/Seq   ou Seq/Ano) no ficheiro de config paramConfiguration.R)")
                         break
                       }  
                       if( 0 != new_nid){
@@ -259,12 +255,12 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
                     patient_to_update <- getPacLevMenosRecente(index,nid = nid_duplicado)
                     new_nid = 0
                     
-                    if(tipo_nid=='seq/ano'){
+                    if(tipo_nid=='Seq/Ano'){
                       new_nid <- getNewNid(patient_to_update[3])  
-                    }else if(tipo_nid=='ano/seq')
+                    }else if(tipo_nid=='Ano/Seq')
                     { new_nid <- getNewNidV1(patient_to_update[3])    }
                     else {
-                      message(" Nao especificou o tipo de NID  (ano/seq   ou seq/ano) no ficheiro de config paramConfiguration.R)")
+                      message(" Nao especificou o tipo de NID  (Ano/Seq   ou Seq/Ano) no ficheiro de config paramConfiguration.R)")
                       break
                     } 
                     if( 0 != new_nid){
@@ -282,12 +278,12 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
                 # Solucao (G2.3):-CC Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS
                 patient_to_update <- composePatientToUpdate(index[1],df = dups_idart_openmrs)
                 new_nid = 0
-                if(tipo_nid=='seq/ano'){
+                if(tipo_nid=='Seq/Ano'){
                   new_nid <- getNewNid(patient_to_update[3])  
-                }else if(tipo_nid=='ano/seq')
+                }else if(tipo_nid=='Ano/Seq')
                 { new_nid <- getNewNidV1(patient_to_update[3])    }
                 else {
-                  message(" Nao especificou o tipo de NID  (ano/seq   ou seq/ano) no ficheiro de config paramConfiguration.R)")
+                  message(" Nao especificou o tipo de NID  (Ano/Seq   ou Seq/Ano) no ficheiro de config paramConfiguration.R)")
                   break
                 }  
                 
@@ -304,12 +300,12 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
                 # Solucao (G2.3):-CC Trocar o nid de um dos pacientes no iDART e tambem no OpenMRS
                 patient_to_update <- composePatientToUpdate(index[index_pac_sem_estado_def],df = dups_idart_openmrs)
                 new_nid = 0
-                if(tipo_nid=='seq/ano'){
+                if(tipo_nid=='Seq/Ano'){
                   new_nid <- getNewNid(patient_to_update[3])  
-                }else if(tipo_nid=='ano/seq')
+                }else if(tipo_nid=='Ano/Seq')
                 { new_nid <- getNewNidV1(patient_to_update[3])    }
                 else {
-                  message(" Nao especificou o tipo de NID  (ano/seq   ou seq/ano) no ficheiro de config paramConfiguration.R)")
+                  message(" Nao especificou o tipo de NID  (Ano/Seq   ou Seq/Ano) no ficheiro de config paramConfiguration.R)")
                   break
                 }  
                 
@@ -375,7 +371,7 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
           }
           else  if(dups_idart_openmrs$uuid[index[2]] == dups_idart_openmrs$uuid[index[3]] ){
             
-            solucao <- paste0("G4.1-CM  Unir  os paciente com o NID: (", dups_idart_openmrs$patientid[index[2]],' - ' ,dups_idart_openmrs$full_name[index[3]] , ") , com ",
+            solucao <- paste0("G4.1-CM  Unir  os paciente com o NID: (", dups_idart_openmrs$patientid[index[2]],' - ' ,dups_idart_openmrs$full_name[index[2]] , ") , com ",
                               "(", dups_idart_openmrs$patientid[index[3]],' - ' ,dups_idart_openmrs$full_name[index[3]] , ") ,no iDART e no OpenMRS, o preferido e aquele  que tiver maior numero de levantamentos")
             logSolucao(index[2],index[3] ,solucao)  
             logAction(composePatientToUpdate(index[2],df = dups_idart_openmrs),solucao  )
@@ -398,26 +394,65 @@ source('paramConfiguration.R')                     ## Carregar as configuracoes
       ##  Exportar os Logs
       if (dim(logsExecucao)[1]>0){
         
-        corrigir_manualmente <- logsExecucao[which(grepl(pattern = 'CM',x=logsExecucao$accao,ignore.case = FALSE)),]
-        us.name <- getOpenmrsDefaultLocation(con_openmrs) 
+        corrigir_manualmente <- logsExecucao[which(grepl(pattern = 'CM',x=logsExecucao$accao,ignore.case = TRUE)),]
+        pacientes_triplicados_sem_solucao_automa <- logsExecucao[which(grepl(pattern = 'N/P',x=logsExecucao$accao,ignore.case = TRUE)),]
+        pacintes_triplicados_unir <-  logsExecucao[which(grepl(pattern = 'G4.1-CM',x=logsExecucao$accao,ignore.case = TRUE)),]
+        pacintes_unir <-  logsExecucao[which(grepl(pattern = '3.1:-CM',x=logsExecucao$accao,ignore.case = TRUE)),] 
+        pacintes_unir_2<-  logsExecucao[which(grepl(pattern = 'G1.1-CM',x=logsExecucao$accao,ignore.case = TRUE)),] 
         
-        write_xlsx(
-          corrigir_manualmente,
-          path = paste0(us.name,' - Pacientes_para_unir_idart_openmrs.xlsx'),
-          col_names = TRUE,
-          format_headers = TRUE
-        )
+        if(dim(pacintes_unir_2)[1]>0){
+          
+          write_xlsx(
+            pacintes_unir_2,
+            path = paste0(us.name,' - Pacientes_para_unir_manualmente_no_openmrs_idart_lista_2.xlsx'),
+            col_names = TRUE,
+            format_headers = TRUE
+          )
+          
+        }
+    
+        if(dim(pacintes_unir)[1]>0){
+          
+          write_xlsx(
+            pacintes_unir,
+            path = paste0(us.name,' - Pacientes_para_unir_manualmente_no_openmrs_idart.xlsx'),
+            col_names = TRUE,
+            format_headers = TRUE
+          )
+          
+        }
+        if(dim(pacintes_triplicados_unir)[1]>0){
+
+            write_xlsx(
+              pacintes_triplicados_unir,
+              path = paste0(us.name,' - Pacientes_triplicados_para_unir_manualmente_openmrs_idart.xlsx'),
+              col_names = TRUE,
+              format_headers = TRUE
+            )
+            
+          }
+        
+        if(dim(pacientes_triplicados_sem_solucao_automa)[1]>0){
+          
+          write_xlsx(
+            pacientes_triplicados_sem_solucao_automa,
+            path = paste0(us.name,' - Pacientes_triplicados_para_corrigir_manualmente_openmrs_idart.xlsx'),
+            col_names = TRUE,
+            format_headers = TRUE
+          )
+          
+        }
         
         
         write_xlsx(
           logsExecucao,
-          path = paste0(us.name, ' - log_de_mudancas_idart_e_openmrs.xlsx'),
+          path = paste0(us.name, ' - Log_de_actualizacoes_feitas.xlsx'),
           col_names = TRUE,
           format_headers = TRUE
         )
         
        
         
-      }  # Exportar os logs para excell
+      } 
       
     

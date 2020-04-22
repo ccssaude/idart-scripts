@@ -1,16 +1,16 @@
 
 
-source('paramConfiguration.R')           ## Carregar as configuracoes
+source('paramConfiguration.R')                     ##  1 -Carregar as configuracoes
 
 
 
-## Pacientes
-## Buscar todos pacientes OpenMRS & iDART
-openmrsAllPatients <- getAllPatientsOpenMRS(con_openmrs)
-openmrsAllPatients$identifierSemLetras <- sapply(openmrsAllPatients$identifier, removeLettersFromNid)   
-idartAllPatients <- getAllPatientsIdart(con_postgres)
-idartAllPatients$patientidSemLetras <- sapply(idartAllPatients$patientid, removeLettersFromNid)    
-openmrsAllPatients$patientidSemLetras <- sapply(openmrsAllPatients$identifier, removeLettersFromNid)   
+
+
+## Pacientes Duplicados Por NID iDART & OpenMRS
+duplicadosOpenmrs <- getDuplicatesPatOpenMRS(con_openmrs)
+duplicadosiDART <-   getDuplicatesPatiDART(con_postgres)
+
+
 
 # Busca o codigo da US
 us.code= getOpenmrsUsCode(openmrsAllPatients)                 
@@ -21,14 +21,13 @@ nidsPorFormatar <- openmrsAllPatients[which(nchar(openmrsAllPatients$patientidSe
 nidsPorFormatar$nid_formatado <- ""
 nidsPorFormatar <- nidsPorFormatar[,c(1,2,3,4,5,6,7,9,14,15)]
 
+tipo_nid <- getTipoSeqNidUs(openmrsAllPatients)
 
 
-
-
-if(tipo_nid=='seq/ano') {
+if(tipo_nid=='Seq/Ano') {
  
   nidsPorFormatar$nid_formatado <-  sapply(nidsPorFormatar$patientidSemLetras , formatNidMisau )
-} else if (tipo_nid == 'ano/seq')
+} else if (tipo_nid == 'Ano/Seq')
 {
   
   nidsPorFormatar$nid_formatado <-  sapply(nidsPorFormatar$patientidSemLetras , formatNidMisauV1 )
@@ -40,73 +39,98 @@ if(tipo_nid=='seq/ano') {
 }
 
 
-# Guardar um excell com nids por corrigir manualemnte
-if (dim(nidsPorFormatar)[1]>0){
-  
-  corrigir_manualmente_nid<- nidsPorFormatar[which(nidsPorFormatar$nid_formatado==0),]
-  us.name <- getOpenmrsDefaultLocation(con_openmrs) 
-  
-  write_xlsx(
-    corrigir_manualmente_nid,
-    path = paste0(us.name,' - Pacientes para corrigir Manualmente os nids.xlsx'),
-    col_names = TRUE,
-    format_headers = TRUE
-  )
-  nidsPorFormatar <- subset(nidsPorFormatar,!(nidsPorFormatar$uuid %in% corrigir_manualmente_nid$uuid), )
-  rm(corrigir_manualmente_nid)
-}
+
+# excluir nids que formatando criam duplicados openmrs
+index_gera_udps_openmrs <- which(nidsPorFormatar$nid_formatado %in% duplicadosOpenmrs$Nid)
+gera_dups_openmrs <-  nidsPorFormatar[index_gera_udps_openmrs,]
+nidsPorFormatar <-subset(nidsPorFormatar, !(nidsPorFormatar$nid_formatado %in% duplicadosOpenmrs$Nid),)  
+
+# excluir nids que formatando criam duplicados idart
+index_gera_udps_idart <- which(nidsPorFormatar$nid_formatado %in% duplicadosiDART$patientid)
+gera_dups_idart <-  nidsPorFormatar[index_gera_udps_idart,]
+nidsPorFormatar <-subset(nidsPorFormatar, !(nidsPorFormatar$nid_formatado %in% duplicadosiDART$Nid),)  
+
+nidsPorFormatar <- inner_join(nidsPorFormatar,idartAllPatients,by='uuid', keep=TRUE)
 
 
+#vector[id,uuid,patientid,openmrs_patient_id,full.name]
+#  beginUpdateProcess(new.nid.act,patient_to_update,df.idart.patients , con.openmrs,con.idart)
 
+for (i in 1:dim(nidsPorFormatar)[1]) {
 
-# Verificar se o nid Formatado nao existe na BD , para nao duplicar
-nidsPorFormatar$nid_formatado_status <- ""
-nidsPorFormatar$nid_formatado_status <- sapply(nidsPorFormatar$nid_formatado,checkNidExistsOpenmrsIdart)
-#names(nidsPorFormatar)[which(names(nidsPorFormatar)=='full_name_openmrs')] <- 'full_name'
+  new_nid <- nidsPorFormatar$nid_formatado[i]
+  patient_to_update <- composePatientToUpdateNomeNid(i,nidsPorFormatar)
 
-# Cruzar os uuids  do Openmrs com iDART
-nids_formatar_idart_openmrs=inner_join(x=nidsPorFormatar,y=idartAllPatients, by=c('uuid'))
-                                       
-### Formata os nids que nao criam conflitos 
-nao_existe_openmrs_idart <- subset(nids_formatar_idart_openmrs,nid_formatado_status=='nao_existe' & nchar(nid_formatado)==21,)
-
-
-if(dim(nao_existe_openmrs_idart)[1]>0 ){
-  
-  for (i in 1:dim(nao_existe_openmrs_idart)[1]) {
-    
-    nid_formatado <- nao_existe_openmrs_idart$nid_formatado[i]
-    
-    patient_to_upate <-  composePatientToUpdate(index = i,df = nao_existe_openmrs_idart)
-    
-    exec <- actualizaNidiDART(con.idart = con_postgres,patient.to.update = patient_to_upate,new.nid = nid_formatado)
-    
-    if(exec==1){
+    if(new_nid != 0) {
       
-      actualizaNidOpenMRS(con.openmrs = con_openmrs,patient.to.update = patient_to_upate,new.nid = nid_formatado)
+      if( checkIfExistsNidIdart(new_nid,idartAllPatients) ){
+        
+        new_nid <- getNewNid(new_nid)
+        status_act_idart <- actualizaNidNomeiDART(con.idart = con_postgres,patient.to.update =patient_to_update,new.nid = new_nid )
+        
+        if(status_act_idart==1){
+          actualizaNidOpenMRS(con.openmrs = con.openmrs,patient.to.update = patient_to_update,new.nid = new_nid)
+          
+        }
+
+      }
+      else if (checkIfExistsNidOpenMRS(new_nid,openmrsAllPatients) ){
+        
+        new_nid <- getNewNid(new_nid)
+        status_act_idart <- actualizaNidNomeiDART(con.idart = con.idart,patient.to.update =patient_to_update,new.nid = new_nid )
+        
+        if(status_act_idart==1){
+          actualizaNidOpenMRS(con.openmrs = con.openmrs,patient.to.update = patient_to_update,new.nid = new_nid)
+          
+        }
+        
+      }
+      else {
+        
+        status_act_idart <- actualizaNidNomeiDART(con.idart = con_postgres,patient.to.update =patient_to_update,new.nid = new_nid )
+        
+        if(status_act_idart==1){
+          actualizaNidOpenMRS(con.openmrs = con.openmrs,patient.to.update = patient_to_update,new.nid = new_nid)
+          
+        }
+      }
+    } 
+    else{
       
-      
+      logAction(patient_to_update, paste0('Error - Nao foi possivel obter novo NID para  o paciente:',new_nid ,', Verifique o Formato do NID! & corrige Manualmente'))
     }
     
-  }
-  
 }
 
 
+
+# Guardar um excell com nids por corrigir manualemnte
 
 ##############################################################################################################################################################
 ##############################################################################################################################################################
 ##  Exportar os Logs
-if (dim(logsExecucao)[1]>0){
-  
 
+  
+  formatar_manualmente <- logsExecucao[which(grepl(pattern = 'Error',x=logsExecucao$accao,ignore.case = TRUE)),]
+  nids_formatados <-  nidsPorFormatar[which(nidsPorFormatar$uuid %in% logsExecucao$uuid),c('patient_id','uuid','identifier','full_name_openmrs','nid_formatado')]
+  if(dim(nids_formatados)[1]>0){
+    
   write_xlsx(
-    logsExecucao,
-    path = paste0(us.name, ' - log_formatacao_nids_openmrs.xlsx'),
+    nids_formatados,
+    path = paste0(us.name, ' - Nids Formatados no Padrao do MISAU.xlsx'),
     col_names = TRUE,
     format_headers = TRUE
-  )
+  ) }
+  
+  if(dim(formatar_manualmente)[1]>0){
   
   
+  
+    write_xlsx(
+      formatar_manualmente,
+      path = paste0(us.name, ' - Pacientes com nids para formatar manualmente.xlsx'),
+      col_names = TRUE,
+      format_headers = TRUE
+    ) }
   
 
