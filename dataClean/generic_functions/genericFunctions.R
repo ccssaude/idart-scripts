@@ -10,21 +10,20 @@ getAllPatientsOpenMRS <- function(con.openmrs) {
       con.openmrs,
       paste0(
         "
-
-      SELECT   
+        SELECT   
         pat.patient_id, 
         pid.identifier , 
         pe.uuid,
          pn.given_name  given_name ,
          pn.middle_name middle_name,
          pn.family_name  family_name,
-        concat(lower(pn.given_name),' ' ,if(lower(pn.middle_name) is not null,concat( lower(pn.middle_name), ' ') ,' '),lower(pn.family_name)) as full_name_openmrs ,
+        concat(lower(pn.given_name),if(lower(pn.middle_name) is not null,concat(' ', lower(pn.middle_name) ) ,''),concat(' ',lower(pn.family_name)) ) as full_name_openmrs ,
         pe.birthdate,
         estado.estado as estado_tarv ,
         max(estado.start_date) data_estado,
         date(visita.encounter_datetime) as data_ult_levant,
         date(visita.value_datetime) as data_prox_marcado
-        FROM  patient pat INNER JOIN  patient_identifier pid ON pat.patient_id =pid.patient_id and pat.voided=0 and pid.preferred=1
+        FROM  patient pat INNER JOIN  patient_identifier pid ON pat.patient_id =pid.patient_id and pat.voided=0 
         INNER JOIN person pe ON pat.patient_id=pe.person_id and pe.voided=0 
         INNER JOIN person_name pn ON pe.person_id=pn.person_id and    pn.voided=0
         LEFT JOIN
@@ -82,6 +81,8 @@ getAllPatientsOpenMRS <- function(con.openmrs) {
 #' @return tabela/dataframe/df com total de  lev por paciente
 #' @examples total_dispensas <- getTotalDeDispensas(con_idart)
 getAllPatientsIdart <- function(con.postgres) {
+  
+  
   patients  <-
     dbGetQuery(
       con.postgres,
@@ -109,6 +110,131 @@ getAllPatientsIdart <- function(con.postgres) {
     )
   
   patients  # same as return(patients)
+  
+}
+
+
+#' Busca todos pacientes referidos para FARMAC
+#' 
+#' @param con.postgres  obejcto de conexao com BD iDART
+#' @return tabela/dataframe/df com pacientes ref as FARMAC
+#' @examples pat_farmac <- getAllPatientsFarmac(con_idart)
+getAllPatientsFarmac <- function(con.postgres) {
+  
+  tryCatch({
+    
+    patients  <-
+      dbGetQuery(
+        con.postgres,
+        paste0(
+          "SELECT  clinic, clinicname, 
+       mainclinic, mainclinicname, firstnames, homephone, lastname, 
+       modified, patientid, sex, uuid
+  FROM public.sync_temp_patients; "
+        )
+      )
+
+  },error = function(cond) {
+    
+    message(cond)
+    #imprimir a mgs a consola
+    # Choose a return value in case of error
+    return(0)
+  },warning = function(cond) {
+    message("Here's the original warning message:")
+    message(cond)
+    # Choose a return value in case of warning
+    return(patients)
+  },finally = {
+    # NOTE:
+    # Here goes everything that should be executed at the end,
+    # regardless of success or error.
+    # If you want more than one expression to be executed, then you
+    # need to wrap them in curly brackets ({...}); otherwise you could
+    # just have written 'finally=<expression>'
+    
+  })
+  
+  
+  
+  patients  # same as return(patients)
+  
+}
+
+
+
+
+#' Busca todos pacientes do OpenMRS incluindo os que foram apagados/ (nao usar esta funcao) -> apenas para investigar
+#' 
+#' @param con.postgres  obejcto de conexao com BD OpenMRS
+#' @return tabela/dataframe/df com todos paciente do OpenMRS 
+#' @examples patients_idart <- getAllPatientsIdart(con_openmrs)
+getPatientsInvestigar <- function(con.openmrs, uuid) {
+  rs  <-
+    dbSendQuery(
+      con.openmrs,
+      paste0(
+        "
+     SELECT   
+        pat.patient_id, 
+        pid.identifier , 
+        pe.uuid,
+         pn.given_name  given_name ,
+         pn.middle_name middle_name,
+         pn.family_name  family_name,
+        concat(lower(pn.given_name),if(lower(pn.middle_name) is not null,concat(' ', lower(pn.middle_name) ) ,''),concat(' ',lower(pn.family_name)) ) as full_name_openmrs ,
+        pe.birthdate,
+        estado.estado as estado_tarv ,
+        max(estado.start_date) data_estado,
+        date(visita.encounter_datetime) as data_ult_levant,
+        date(visita.value_datetime) as data_prox_marcado
+        FROM  patient pat INNER JOIN  patient_identifier pid ON pat.patient_id =pid.patient_id 
+        INNER JOIN person pe ON pat.patient_id=pe.person_id 
+        INNER JOIN person_name pn ON pe.person_id=pn.person_id 
+        LEFT JOIN
+      		(
+      			SELECT 	pg.patient_id,ps.start_date encounter_datetime,location_id,ps.start_date,ps.end_date,
+      					CASE ps.state
+                              WHEN 6 THEN 'ACTIVO NO PROGRAMA'
+      						WHEN 7 THEN 'TRANSFERIDO PARA'
+      						WHEN 8 THEN 'SUSPENSO'
+      						WHEN 9 THEN 'ABANDONO'
+      						WHEN 10 THEN 'OBITO'
+                              WHEN 29 THEN 'TRANSFERIDO DE'
+      					ELSE 'OUTRO' END AS estado
+      			FROM 	patient p
+      					INNER JOIN patient_program pg ON p.patient_id=pg.patient_id
+      					INNER JOIN patient_state ps ON pg.patient_program_id=ps.patient_program_id
+      			WHERE 	pg.voided=0 AND ps.voided=0 AND p.voided=0 AND
+      					pg.program_id=2 AND ps.state IN (6,7,8,9,10,29) AND ps.end_date IS NULL
+      
+      
+      		) estado ON estado.patient_id=pe.person_id
+       LEFT Join
+           (
+      		Select ult_levantamento.patient_id,ult_levantamento.encounter_datetime,o.value_datetime
+      		from
+      
+      			(	select 	p.patient_id,max(encounter_datetime) as encounter_datetime
+      				from 	encounter e
+      						inner join patient p on p.patient_id=e.patient_id
+      				where 	e.voided=0 and p.voided=0 and e.encounter_type=18
+      				group by p.patient_id
+      			) ult_levantamento
+      			inner join encounter e on e.patient_id=ult_levantamento.patient_id
+      			inner join obs o on o.encounter_id=e.encounter_id
+      			where o.concept_id=5096 and o.voided=0 and e.encounter_datetime=ult_levantamento.encounter_datetime and
+      			e.encounter_type =18
+      		) visita  on visita.patient_id=pn.person_id
+      
+          group by pat.patient_id order by     pat.patient_id
+        "
+      )
+    )
+  
+  data <- fetch(rs, n = -1)
+  RMySQL::dbClearResult(rs)
+  return(data)
   
 }
 
@@ -170,6 +296,13 @@ composePatientToUpdateNomeNid <- function(index,df){
   
   id = df$id[index]
   uuid = df$uuid[index]
+  if(is.na(uuid)){
+    if("openmrs_uuid" %in% colnames(df))
+    {
+      uuid=df$openmrs_uuid[index];
+    }
+    
+    }
   patientid = df$patientid[index]
   openmrs_patient_id =df$patient_id[index]
   full.name =  df$full_name[index]
@@ -183,7 +316,9 @@ composePatientToUpdateNomeNid <- function(index,df){
  
   family_name = df$family_name[index]
   openmrs_patient_id =df$patient_id[index]
-  patient <- c(id,uuid,patientid,openmrs_patient_id,full.name,index,given_name,family_name)
+  firstnames <- df$firstnames[index]
+  lastname <-  df$lastname[index]
+  patient <- c(id,uuid,patientid,openmrs_patient_id,full.name,index,given_name,family_name,firstnames,lastname)
   patient
 }
 #' Compoe um vector com dados do paciente para se utilizar na tabela dos logs
@@ -232,7 +367,7 @@ updateUUID <- function (postgres.con, patient.id, uuid) {
 #' @param uuid.openmrs uuid do  OpenMRS
 #' @return 0/1  (0) - error  (1) - sucess   
 #' @examples updateUuuispenMRS(67,  uuid)
-updateUuidOpenMRS <- function (patient.id, uuid.openmrs) {
+updateUuidIdart <- function (patient.id, uuid.openmrs) {
   dbExecute(
     con_postgres,
     paste0(
@@ -413,5 +548,17 @@ getTipoSeqNidUs <- function (df) {
 
 
 
+#' Calcula o peso da diferenca de dois strings atraves do algoritmo de leveingstein / stringdist no R
+#' Funcao baseada no algoritmo de simetria de nomes
+#' @param string1 do primeiro nome  
+#' @param string2 o segudo nome
+#' @return numeric distance
+#' #' @examples
+#' dist  = getStringDistance('agnaldo','agnaldo s')
+getStringDistance <- function (string1,string2) {
+ 
+  dist <- stringdist(string1,string2,method = 'jw')
+  return(dist)
+}
 
 

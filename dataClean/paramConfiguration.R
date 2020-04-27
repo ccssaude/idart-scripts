@@ -13,41 +13,23 @@ require(writexl)
 ###############################################################################################################################################
 
 
-wd <- '~/R/iDART/idart-scripts/dataClean/'      # ******** Configure para o dir onde deixou os ficheiros necessarios para executar o programa ****
 
 
 ## OpenMRS  - Configuracao de variaveis de conexao 
 openmrs.user ='esaude'                          # ******** modificar
 openmrs.password='esaude'                       # ******** modificar
-openmrs.db.name='canico'                      # ******** modificar
+openmrs.db.name='bagamoio'                        # ******** modificar
 openmrs.host='127.17.0.2'                       # ******** modificar
 openmrs.port=3333                               # ******** modificar
 
 postgres.user ='postgres'                      # ******** modificar
 postgres.password='postgres'                   # ******** modificar
-postgres.db.name='canico'                    # ******** modificar
+postgres.db.name='bagamoio'                      # ******** modificar
 postgres.host='127.17.0.3'                     # ******** modificar
 postgres.port=5432                             # ******** modificar
 
 ####################################### Final da config  de Parametros  ########################################################################
 ################################################################################################################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -104,19 +86,15 @@ checkScriptsExists <- function (files, dir){
 }
 ################################################################################################################################################
 
-
-if (dir.exists(wd)){
- 
-
-  setwd(wd)    # set working directory - @ctiva o directorio wd
-  if(checkScriptsExists(files = c('helper_functions_duplicated.R','genericFunctions.R','nidRelatedFunctions.R','logsExecucao.Rdata','Duplicated.R'),dir = wd)){
+  # set working directory - @ctiva o directorio wd
+  if(checkScriptsExists(files = c('generic_functions/helper_functions_duplicated.R','generic_functions/genericFunctions.R','actualizar_dados_inconsistentes.R','generic_functions/nidRelatedFunctions.R','logs/logsExecucao.Rdata','Duplicated.R'),dir = wd)){
     
     
     
-    source('helper_functions_duplicated.R')  ## Carregar funcoes
-    source('genericFunctions.R')             ## Carregar funcoes
-    source('nidRelatedFunctions.R')          ## Carregar funcoes
-    load(file = 'logsExecucao.Rdata')        ## carrega a tabela dos logs
+    source('generic_functions/helper_functions_duplicated.R')  ## Carregar funcoes
+    source('generic_functions/genericFunctions.R')             ## Carregar funcoes
+    source('generic_functions/nidRelatedFunctions.R')          ## Carregar funcoes
+    load(file = 'logs/logsExecucao.Rdata')        ## carrega a tabela dos logs
     
     
     status_con_openmrs <- tryCatch({
@@ -138,10 +116,15 @@ if (dir.exists(wd)){
       us.name <- getOpenmrsDefaultLocation(con_openmrs) 
       
       
+      if(exists('tipo_nid')){
       
-      tipo_nid = getTipoSeqNidUs(openmrsAllPatients)    # ******** pode ser 'seq/ano' (formatNidMisau) ou 'ano/seq' (formatNidMisauV1)
-      # Modificar consoante o padrao de nids na US ( verificar a tabela dos duplicados para tomar decisao)
-      
+        # Do nothing
+      } else {
+        
+        tipo_nid = getTipoSeqNidUs(openmrsAllPatients)    # ******** pode ser 'seq/ano' (formatNidMisau) ou 'ano/seq' (formatNidMisauV1)
+                                                # Modificar consoante o padrao de nids na US ( verificar a seq mais frequente nessa US (pdoe ser 'Ano/Seq' ou 'Seq/Ano' ))
+      }
+
       
       
       1
@@ -188,7 +171,7 @@ if (dir.exists(wd)){
     },
     error = function(cond) {
       
-      message(paste0( "PosgreSQL - Nao foi possivel connectar-se a host: ", openmrs.host, '  db:',openmrs.db.name, "...",'user:',openmrs.db.name, ' passwd: ', openmrs.password)) 
+      message(paste0( "PosgreSQL - Nao foi possivel connectar-se a host: ", postgres.host, '  db:',postgres.db.name, "...",'user:',postgres.user, ' passwd: ', postgres.password)) 
       message(cond)
       #Choose a return value in case of error
       # Choose a return value in case of error
@@ -216,23 +199,26 @@ if (dir.exists(wd)){
       if(status_con_idart==1){
         
         message("Conexoes OpenMRS & iDART estabelecidas")  ## carrega as librarias
-        
+        if(tipo_nid=='Ano/Seq_' |  ! tipo_nid%in% c('Ano/Seq','Seq/Ano')  ) {
+          
+          message(" Nao foi possivel obter o tipo de seq de nid usada nesta US ('Ano/Seq' ou 'Seq/Ano' ex: 10/934 ou 945/10 ) , deve analizar a sequencia mais frequente nos NIDs
+                    e definir manualmente esta variavel na consola. ex: tipo_nid = 'Ano/Seq'  ")
+          rm(list=setdiff(ls(), "wd"))
+        }
     
       } else {
         
         message("Algo correu mal, veja os erros na console")
-        rm(openmrsAllPatients)
-        rm(idartAllPatients)
-        rm(con_postgres)
-        rm(con_openmrs)
+        # Limpar o envinronment
+        
+        rm(list=setdiff(ls(), c("wd", "tipo_nid") ))
       }
-    } else {
+    }
+    else {
       
       message("Algo correu mal, veja os erros na console")
-      rm(openmrsAllPatients)
-      rm(idartAllPatients)
-      rm(con_postgres)
-      rm(con_openmrs)
+      
+      rm(list=setdiff(ls(), c("wd", "tipo_nid") ))
     }
     
   
@@ -240,7 +226,3 @@ if (dir.exists(wd)){
     message( paste0('Ficheiros em falta. Veja o erro anterior'))
   }
   
-}else {
-  
-  message( paste0('O Directorio ', wd, ' nao existe, por favor configure corectamente o dir'))
-}
