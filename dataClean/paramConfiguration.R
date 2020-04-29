@@ -18,13 +18,13 @@ require(writexl)
 ## OpenMRS  - Configuracao de variaveis de conexao 
 openmrs.user ='esaude'                          # ******** modificar
 openmrs.password='esaude'                       # ******** modificar
-openmrs.db.name='bagamoio'                        # ******** modificar
+openmrs.db.name='albazine'                        # ******** modificar
 openmrs.host='127.17.0.2'                       # ******** modificar
 openmrs.port=3333                               # ******** modificar
 
 postgres.user ='postgres'                      # ******** modificar
 postgres.password='postgres'                   # ******** modificar
-postgres.db.name='bagamoio'                      # ******** modificar
+postgres.db.name='albazine'                      # ******** modificar
 postgres.host='127.17.0.3'                     # ******** modificar
 postgres.port=5432                             # ******** modificar
 

@@ -28,7 +28,10 @@ actualizaUuidIdart <-   function(con.idart, patient.to.update) {
     
   },
   error = function(cond) {
-    msg <- paste0("BD_ERROR - Error iDART - public.patient Nao foi possivel Actualizar o NID  ":patient.to.update[3], ' Para  uuid= ',  patient.to.update[2],  ', Erro: ', as.character(cond))
+    
+    msg <-  paste0(" BD_ERROR - Error iDART - public.patient Nao foi possivel Actualizar o NID:  ",patient.to.update[3], 
+           "- ",patient.to.update[5], " Para : ", new.nid, " Erro: ")
+
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -89,8 +92,8 @@ updatePackagedrugInfoTmp<-   function(con.idart, patient.to.update, new.nid) {
   },
   error = function(cond) { # TODO Lista de pacientes com erro quando se tentou actualizar, escrever um excell
   
-    msg <- paste0("BD_ERROR - Error iDART -public.patientidentifier nao foi possivel Actualizar o NID  ":patient.to.update[3],
-                  ' - ',patient.to.update[5], ' Para :', new.nid,  ' Erro: ', as.character(cond))
+    msg <-  paste0(" BD_ERROR - Error iDART - public.patient Nao foi possivel Actualizar o NID:  ",patient.to.update[3], 
+                   "- ",patient.to.update[5], " Para : ", new.nid, " Erro: ")
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -162,8 +165,8 @@ actualizaNidiDART <-   function(con.idart, patient.to.update,new.nid) {
     return(1)
   },
   error = function(cond) {
-    msg <- paste0("BD_ERROR - iDART - patient/public.patientidentifier/public.packagedruginfotmp Nao foi possivel Actualizar o NID  ":patient.to.update[3],
-                  ' - ',patient.to.update[5], ' Para :', new.nid,  ' Erro: ', as.character(cond))
+  msg <-  paste0(" BD_ERROR - Error iDART - public.patient Nao foi possivel Actualizar o NID:  ",patient.to.update[3], 
+                             "- ",patient.to.update[5], " Para : ", new.nid, " Erro: ")
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -248,8 +251,11 @@ updatePatientIdart <-   function(con.idart, patient.to.update,new.nid) {
     return(1)
   },
   error = function(cond) { # TODO Lista de pacientes com erro quando se tentou actualizar, escrever um excell
-    msg <- paste0("BD_ERROR - Error iDART - patient/public.patientidentifier/public.packagedruginfotmp Nao foi possivel Actualizar o NID  ":patient.to.update[3],
-                  ' - ',patient.to.update[5], ' Para :', new.nid,  ' Erro: ', as.character(cond))
+
+    
+    msg <-  paste0(" BD_ERROR - Error iDART - public.patient Nao foi possivel Actualizar o NID:  ",patient.to.update[3], 
+                   "- ",patient.to.update[5], " Para : ", new.nid, " Erro: ")
+    
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -343,8 +349,9 @@ actualizaNidNomeiDART <-   function(con.idart, patient.to.update,new.nid) {
     return(1)
   },
   error = function(cond) {
-    msg <- paste0(" BD_ERROR - iDART - patient/public.patientidentifier/public.packagedruginfotmp Nao foi possivel Actualizar o NID  ":patient.to.update[3],
-                  ' - ',patient.to.update[5], ' Para :', new.nid,  ' Erro: ', as.character(cond))
+    
+    msg <-  paste0(" BD_ERROR - Error iDART - public.patient Nao foi possivel Actualizar o NID:  ",patient.to.update[3], 
+                   "- ",patient.to.update[5], " Para : ", new.nid, " Erro: ")
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -381,29 +388,30 @@ actualizaNidOpenMRS <-   function(con.openmrs, patient.to.update,new.nid) {
     
     message(paste0( "OpenMRS - Actualizando dados   do paciente: ",patient.to.update[3] , ' - ',patient.to.update[5], " para NID:", new.nid ) )
     
-    rs = dbSendQuery(
-      con.openmrs,
-      paste0(
-        "update  patient_identifier set identifier ='",
-        new.nid,
-        "' where patient_id = ",
-        as.numeric(patient.to.update[4]),
-        " ;"
-      )
-    )
 
-    dbClearResult(rs)
+  dbGetQuery(con.openmrs, paste0( "update  patient_identifier set identifier ='",
+                                    new.nid, 
+                                    "' where patient_id = "
+                                    ,as.numeric(patient.to.update[4]),
+      " ;"
+    ) )
+   
     
-
+    
     logAction(patient.info = patient.to.update,action = paste0('OpenMRS NID:',patient.to.update[3], ' - ',patient.to.update[5], 
-                                                               ' na tabela patient_identifier mudou para: ',new.nid))
+                                                               ' na tabela patient_identifier mudou para: ',new.nid))  
+    
+    # Clear the result.
+    #dbClearResult(rs)
+
     return(TRUE)
     
     
   },
   error = function(cond) {
-    msg <- paste0("BD_ERROR - OpenMRS - Tabela patient_identifier Nao foi possivel Actualizar o NID  ":patient.to.update[3], 
-                  ' - ',patient.to.update[5],' Para :', new.nid,  ' Erro: ', as.character(cond))
+    msg <- paste0(" BD_ERROR - OpenMRS Tabela patient_identifier nao foi possivel Actualizar o NID: ",patient.to.update[3], 
+                   "- ",patient.to.update[5], " Para : ", new.nid, " Erro: ")
+    
     #message(msg) imprimir a mgs a consola
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
@@ -418,7 +426,6 @@ actualizaNidOpenMRS <-   function(con.openmrs, patient.to.update,new.nid) {
     # just have written 'finally=<expression>'
     
   })
-  
   openmrs
   
 }
@@ -589,11 +596,12 @@ getUsCode <- function(nid){
   
 }
 
-#' Formata a Sequencia do NID 
+#' Formata a o codigod da US 
 #' 
 #' @param NID do paciente
 #' @return  usCode  
-#' @examples formatUsCode(0111030701/2010/00195)
+#' @examples formatUsCode(01110307)
+#' Retorna 0111030701
 formatUsCode <- function(codUS) {
 
     if (nchar(codUS) == 10) {
@@ -603,6 +611,43 @@ formatUsCode <- function(codUS) {
     return(newCod)
   } else  if (nchar(codUS) == 8) {
     newCod <- paste0("01", codUS)
+    return(newCod)
+  } else  if (nchar(codUS) == 7) {
+    newCod <- paste0("01", substr(codUS,0,2),"0",substr(codUS,3,nchar(codUS)))
+    return(newCod)
+  } else  if (nchar(codUS) == 9) {
+    if(substr(codUS,0,1)!='1'){
+      codUS <- paste0('1',substr(codUS,2,nchar(codUS)))
+    }
+    newCod <- paste0("0", codUS)
+    return(newCod)
+  } else {
+    return(0)
+  }
+  
+}
+
+
+#' Formata a o codigo da US / Somente para Polana Canico ( pacientes com NIDs sem barras )
+#' 
+#' @param NID do paciente
+#' @return  usCode  
+#' @examples formatUsCodeV1(01110307)
+#' Retorna 0111030701
+formatUsCodeV1 <- function(codUS) {
+  
+  if (nchar(codUS) == 10) {
+    return(codUS)
+  } else if (nchar(codUS) == 6) {
+    newCod <- paste0("01", codUS,"01")
+    return(newCod)
+  } else  if (nchar(codUS) == 8) {
+    if( "01" == substr(codUS,0,2)){
+      newCod <- paste0( codUS,"01")
+    } else {
+      newCod <- paste0("01", codUS)
+    }
+   
     return(newCod)
   } else  if (nchar(codUS) == 7) {
     newCod <- paste0("01", substr(codUS,0,2),"0",substr(codUS,3,nchar(codUS)))

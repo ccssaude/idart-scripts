@@ -58,33 +58,18 @@
 ############ 
 ##############################################################################################################################################################
 ##############################################################################################################################################################
-# canico
-# junho
-# Maio
-# abazine
-# Bagamio
-# magoanine
-# Maio 
-# Porto
 
 
 # ******** Configure para o dir onde deixou os ficheiros necessarios para executar o programa ****
 
 wd <- '~/R/iDART/idart-scripts/dataClean/'
 
-
 # Limpar o envinronment
 
-rm(list=setdiff(ls(), "wd"))
+rm(list=setdiff(ls(), c("wd", "tipo_nid") ))
 
 if (dir.exists(wd)){
-
-    setwd(wd)  
-    source('paramConfiguration.R')     
-    
-    ##  1 -Carregar as configuracoes
-    #source('actualizar_dados_inconsistentes.R')        ## Garante que os dados de iDART sao os mesmos que OpenMRS
-    rm(list=setdiff(ls(), c("wd", "tipo_nid") ))
+  
     setwd(wd) 
     source('paramConfiguration.R')                     ##  Carrega dados actualizados
   
@@ -99,6 +84,7 @@ if (dir.exists(wd)){
       
       ## Pacientes Duplicados Por NID iDART & OpenMRS
       duplicadosOpenmrs <- getDuplicatesPatOpenMRS(con_openmrs)
+      temp <- getPatientsInvestigar(con_openmrs)
       
       duplicadosiDART <-   getDuplicatesPatiDART(con_postgres)
       ## Pacientes da FARMAC ( vamos garantir que nao modificamos nids destes pacientes)
@@ -141,11 +127,30 @@ if (dir.exists(wd)){
         
         if(length(index)==2){
           
-          if(dups_idart_openmrs$uuid[index[1]] == dups_idart_openmrs$uuid[index[2]] ){  ## Grupo 1 (G1)
-            # Solucao Grupo 1 (G1.1)
-            solucao <- paste0("G1.1-CM  Unir  os paciente com o NID: ", dups_idart_openmrs$patientid[index[1]] , "no iDART e no OpenMRS, o preferido e aquele  que tiver maior numero de levantamentos")
-            logSolucao(index[1],index[2] ,solucao)  
-            logAction(composePatientToUpdate(index[1],df = dups_idart_openmrs),solucao  )
+          if(dups_idart_openmrs$uuid[index[1]] == dups_idart_openmrs$uuid[index[2]]  ){  ## Grupo 1 (G1)
+            
+            if( dups_idart_openmrs$uuid[index[1]]  %in% duplicadosOpenmrs$uuid){
+              
+              # Solucao Grupo 1 (G1.1)
+              solucao <- paste0("G1.1-CM  Unir  os paciente no iDART & OpenMRS com o NID: (", dups_idart_openmrs$patientid[index[1]] ," - " ,
+                                dups_idart_openmrs$full_name[index[1]],
+                                ") com  (" ,dups_idart_openmrs$patientid[index[2]] ,
+                                " - " ,dups_idart_openmrs$full_name[index[2]],
+                                ") no iDART e no OpenMRS, o preferido e aquele  que tiver maior numero de levantamentos")
+              logSolucao(index[1],index[2] ,solucao)  
+              logAction(composePatientToUpdate(index[1],df = dups_idart_openmrs),solucao  )
+            } else {
+              
+              # Solucao Grupo 1 (G1.1)
+              solucao <- paste0("G1.1-CM  Unir  os paciente no iDART com o NID: (", dups_idart_openmrs$patientid[index[1]] ," - " ,
+                                dups_idart_openmrs$full_name[index[1]],
+                                ") com  (" ,dups_idart_openmrs$patientid[index[2]] ,
+                                " - " ,dups_idart_openmrs$full_name[index[2]],
+                                ") no iDART e no OpenMRS, o preferido e aquele  que tiver maior numero de levantamentos")
+              logSolucao(index[1],index[2] ,solucao)  
+              logAction(composePatientToUpdate(index[1],df = dups_idart_openmrs),solucao  )
+            }
+          
           } 
           
           else { 
@@ -184,7 +189,7 @@ if (dir.exists(wd)){
                     logSolucao(index[1],index[2] ,solucao)  
                     beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,openmrsAllPatients,con_openmrs,con_postgres)
                   } else {  
-                    solucao <- paste0("NP -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
+                    solucao <- paste0("NP_NID -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
                     logSolucao(index[1],index[2],solucao)
                     logAction(patient.info =patient_to_update,action = solucao )
                   }
@@ -215,7 +220,7 @@ if (dir.exists(wd)){
                       logSolucao(index[1],index[2],solucao)
                       beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,openmrsAllPatients,con_openmrs,con_postgres) # kaka
                     } else{
-                      solucao <- paste0("NP -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
+                      solucao <- paste0("NP_NID -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
                       logSolucao(index[1],index[2],solucao)
                       logAction(patient.info =patient_to_update,action = solucao )
                     }
@@ -239,7 +244,7 @@ if (dir.exists(wd)){
                       logSolucao(index[1],index[2],solucao)
                       beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,openmrsAllPatients,con_openmrs,con_postgres)
                     } else{
-                      solucao <- paste0("NP -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
+                      solucao <- paste0("NP_NID -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
                       logSolucao(index[1],index[2],solucao)
                       logAction(patient.info =patient_to_update,action = solucao )
                       
@@ -266,7 +271,7 @@ if (dir.exists(wd)){
                     logSolucao(index[1],index[2] ,solucao)  
                     beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,openmrsAllPatients,con_openmrs,con_postgres)
                   } else {
-                    solucao <- paste0("NP -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
+                    solucao <- paste0("NP_NID -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
                     logSolucao(index[1],index[2],solucao)
                     logAction(patient.info =patient_to_update,action = solucao )
                   }
@@ -295,7 +300,7 @@ if (dir.exists(wd)){
                         beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,openmrsAllPatients,con_openmrs,con_postgres)
                       } else{
                         
-                        solucao <- paste0("NP -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
+                        solucao <- paste0("NP_NID -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
                         logSolucao(index[1],index[2],solucao)
                         logAction(patient.info =patient_to_update,action = solucao )
                       }
@@ -320,7 +325,7 @@ if (dir.exists(wd)){
                         beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,openmrsAllPatients,con_openmrs,con_postgres)
                       } else{
                         
-                        solucao <- paste0("NP -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
+                        solucao <- paste0("NP_NID -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
                         logSolucao(index[1],index[2],solucao)
                         logAction(patient.info =patient_to_update,action = solucao )
                       }
@@ -345,7 +350,7 @@ if (dir.exists(wd)){
                       logSolucao(index[1],index[2] ,solucao)  
                       beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,openmrsAllPatients,con_openmrs,con_postgres)
                     }else{
-                      solucao <- paste0("NP -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
+                      solucao <- paste0("NP_NID -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
                     logSolucao(index[1],index[2],solucao)
                     logAction(patient.info =patient_to_update,action = solucao )
                     }
@@ -375,7 +380,7 @@ if (dir.exists(wd)){
                   beginUpdateProcess(new_nid,patient_to_update,idartAllPatients,openmrsAllPatients,con_openmrs,con_postgres)
                 }else{
                   
-                  solucao <- paste0("NP -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
+                  solucao <- paste0("NP_NID -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
                   logSolucao(index[1],index[2],solucao)
                   logAction(patient.info =patient_to_update,action = solucao )
                 }
@@ -404,7 +409,7 @@ if (dir.exists(wd)){
                 }else{
                   
                   
-                  solucao <- paste0("NP -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
+                  solucao <- paste0("NP_NID -  Nao foi possivel trocar o nid do paciente duplicado :",nid_duplicado ,' - ',  patient_to_update[5],  ", deve formatar manualemnte este nid") 
                   logSolucao(index[1],index[2],solucao)
                   logAction(patient.info =patient_to_update,action = solucao )
                 }
@@ -518,22 +523,13 @@ if (dir.exists(wd)){
         pacientes_triplicados_sem_solucao_automa <- logsExecucao[which(grepl(pattern = 'G4.1-PT',x=logsExecucao$accao,ignore.case = TRUE)),]
         pacintes_triplicados_unir <-  logsExecucao[which(grepl(pattern = 'G4.1-CM',x=logsExecucao$accao,ignore.case = TRUE)),]
         pacintes_unir <-  logsExecucao[which(grepl(pattern =  '3.1:-CM',x=logsExecucao$accao,ignore.case = TRUE)),] 
-        pacintes_unir_2<-  logsExecucao[which(grepl(pattern = 'G1.1-CM',x=logsExecucao$accao,ignore.case = TRUE)),] 
-        pacintes_nids_formatar_manualmente<-  logsExecucao[which(grepl(pattern = 'NP',x=logsExecucao$accao,ignore.case = TRUE)),] 
+        pacintes_unir_2 <-  logsExecucao[which(grepl(pattern = 'G1.1-CM',x=logsExecucao$accao,ignore.case = TRUE)),] 
+        pacintes_nids_formatar_manualmente<-  logsExecucao[which(grepl(pattern = 'NP_NID',x=logsExecucao$accao,ignore.case = TRUE)),] 
         pacintes_erro_sql <-  logsExecucao[which(grepl(pattern = 'BD_ERROR',x=logsExecucao$accao,ignore.case = TRUE)),] 
         pacintes_erro_ss<-  logsExecucao[which(grepl(pattern = 'SS-CM',x=logsExecucao$accao,ignore.case = TRUE)),] 
-        pacintes_dups_apenas_idart_unir_com_outro <-  logsExecucao[which(grepl(pattern = '3.1.2:-CM',x=logsExecucao$accao,ignore.case = TRUE)),] 
-        
-        if(dim(pacintes_dups_apenas_idart_unir_com_outro)[1]>0){
-          
-          write_xlsx(
-            pacintes_dups_apenas_idart_unir_com_outro,
-            path = paste0('logs/',us.name,' - Pacientes_duplicados_apenas_idart_unir_com_outros.xlsx'),
-            col_names = TRUE,
-            format_headers = TRUE
-          )
-          logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_dups_apenas_idart_unir_com_outro$uuid)),]
-        }
+  
+      
+
         if(dim(pacintes_erro_ss)[1]>0){
           
           write_xlsx(
