@@ -188,7 +188,7 @@ if(dim(nids_formatados)[1]>0){
   
   write_xlsx(
     nids_formatados,
-    path = paste0('logs/',us.name, ' - Nids Formatados no Padrao do MISAU.xlsx'),
+    path = paste0('output/',us.name, ' - Nids Formatados no Padrao do MISAU.xlsx'),
     col_names = TRUE,
     format_headers = TRUE
   ) }
@@ -197,7 +197,7 @@ if(dim(formatar_manualmente)[1]>0){
   
     write_xlsx(
     formatar_manualmente,
-    path = paste0('logs/', us.name, ' - Pacientes com nids para formatar manualmente.xlsx'),
+    path = paste0('output/', us.name, ' - Pacientes com nids para formatar manualmente.xlsx'),
     col_names = TRUE,
     format_headers = TRUE
   ) }

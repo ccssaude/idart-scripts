@@ -311,7 +311,7 @@ if (dim(logsExecucao)[1]>0){
     
     write_xlsx(
       pacintes_dups_apenas_idart_unir_com_outro,
-      path = paste0('logs/',us.name,' - Pacientes_duplicados_apenas_idart_unir_com_outro.xlsx'),
+      path = paste0('output/',us.name,' - Pacientes_duplicados_apenas_idart_unir_com_outro.xlsx'),
       col_names = TRUE,
       format_headers = TRUE
     )
@@ -321,7 +321,7 @@ if (dim(logsExecucao)[1]>0){
     
     write_xlsx(
       pacintes_erro_ss,
-      path = paste0('logs/',us.name,' - Pacientes_idart_que_nao_existem_openmrs.xlsx'),
+      path = paste0('output/',us.name,' - Pacientes_idart_que_nao_existem_openmrs.xlsx'),
       col_names = TRUE,
       format_headers = TRUE
     )
@@ -331,7 +331,7 @@ if (dim(logsExecucao)[1]>0){
     
     write_xlsx(
       pacintes_erro_sql,
-      path = paste0('logs/' , 'Formatacao_NIDs_',us.name,' - Pacientes_que_tiveram_erro_sql_durante_a_correcao_proceder_manualmente_no_openmrs_idart.xlsx'),
+      path = paste0('output/' , 'Formatacao_NIDs_',us.name,' - Pacientes_que_tiveram_erro_sql_durante_a_correcao_proceder_manualmente_no_openmrs_idart.xlsx'),
       col_names = TRUE,
       format_headers = TRUE
     )
@@ -341,7 +341,7 @@ if (dim(logsExecucao)[1]>0){
   
   write_xlsx(
     logsExecucao,
-    path = paste0('logs/',us.name, ' - Log_de_actualizacoes_feitas.xlsx'),
+    path = paste0('output/',us.name, ' - Log_de_actualizacoes_feitas.xlsx'),
     col_names = TRUE,
     format_headers = TRUE
   )
@@ -350,23 +350,23 @@ if (dim(logsExecucao)[1]>0){
 if(exists("logs_tmp_1") && dim(logs_tmp_1)[1] > 0){
   if(exists("logs_tmp_2") && dim(logs_tmp_2)[1] > 0){
     tmp <- rbind.fill(logs_tmp_1,logs_tmp_2)
-    save( tmp ,file =paste0('logs/',us.name,'_Actualizacoes_dados_pacientes.RData') )
+    save( tmp ,file =paste0('output/',us.name,'_Actualizacoes_dados_pacientes.RData') )
     rm(logs_tmp_1,logs_tmp_2)
   } else{
-    save(logs_tmp_1 ,file =paste0('logs/',us.name,'_Actualizacoes_dados_pacientes.RData' ))
+    save(logs_tmp_1 ,file =paste0('output/',us.name,'_Actualizacoes_dados_pacientes.RData' ))
     rm(logs_tmp_1)
     
   }
 } else {
   
   if(exists("logs_tmp_2") && dim(logs_tmp_2)[1] > 0){
-  save(logs_tmp_2 ,file =paste0('logs/',us.name,'_Actualizacoes_dados_pacientes.RData') )
+  save(logs_tmp_2 ,file =paste0('output/',us.name,'_Actualizacoes_dados_pacientes.RData') )
   rm(logs_tmp_2)
   }
   
 }
   
-  save(list = ls(),file =gsub(pattern = ' ', replacement = '_',x = paste0('logs/',us.name, '.RData') ))
+  save(list = ls(),file =gsub(pattern = ' ', replacement = '_',x = paste0('output/',us.name, '.RData') ))
   
   
   

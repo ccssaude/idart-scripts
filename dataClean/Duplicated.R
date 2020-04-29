@@ -110,7 +110,7 @@ if (dir.exists(wd)){
         if(dim(pat_farmac_dups)[1]> 0){
           
           write_xlsx(x = pat_farmac_dups,
-                     path = paste0('logs/',us.name, ' - Pacientes Farmac Duplicados.xlsx'),
+                     path = paste0('output/',us.name, ' - Pacientes Farmac Duplicados.xlsx'),
                      col_names = TRUE,
                      format_headers = TRUE
           )
@@ -534,7 +534,7 @@ if (dir.exists(wd)){
           
           write_xlsx(
             pacintes_erro_ss,
-            path = paste0('logs/',us.name,' - Pacientes_duplicados_apenas_idart_que_nao_existem_openmrs.xlsx'),
+            path = paste0('output/',us.name,' - Pacientes_duplicados_apenas_idart_que_nao_existem_openmrs.xlsx'),
             col_names = TRUE,
             format_headers = TRUE
           )
@@ -547,7 +547,7 @@ if (dir.exists(wd)){
             temp <- rbind.fill(pacintes_unir,pacintes_unir_2)
             write_xlsx(
               temp,
-              path = paste0('logs/',us.name,' - Pacientes_para_unir_manualmente_no_openmrs_idart.xlsx'),
+              path = paste0('output/',us.name,' - Pacientes_para_unir_manualmente_no_openmrs_idart.xlsx'),
               col_names = TRUE,
               format_headers = TRUE
             )
@@ -556,7 +556,7 @@ if (dir.exists(wd)){
           } else {
             write_xlsx(
               pacintes_unir_2,
-              path = paste0('logs/',us.name,' - Pacientes_para_unir_manualmente_no_openmrs_idart.xlsx'),
+              path = paste0('output/',us.name,' - Pacientes_para_unir_manualmente_no_openmrs_idart.xlsx'),
               col_names = TRUE,
               format_headers = TRUE
               )
@@ -566,7 +566,7 @@ if (dir.exists(wd)){
           
           write_xlsx(
             pacintes_unir,
-            path = paste0('logs/',us.name,' - Pacientes_para_unir_manualmente_no_openmrs_idart.xlsx'),
+            path = paste0('output/',us.name,' - Pacientes_para_unir_manualmente_no_openmrs_idart.xlsx'),
             col_names = TRUE,
             format_headers = TRUE
           )
@@ -576,7 +576,7 @@ if (dir.exists(wd)){
 
             write_xlsx(
               pacintes_triplicados_unir,
-              path = paste0('logs/',us.name,' - Pacientes_triplicados_para_unir_manualmente_openmrs_idart.xlsx'),
+              path = paste0('output/',us.name,' - Pacientes_triplicados_para_unir_manualmente_openmrs_idart.xlsx'),
               col_names = TRUE,
               format_headers = TRUE
             )
@@ -586,7 +586,7 @@ if (dir.exists(wd)){
           
           write_xlsx(
             pacientes_triplicados_sem_solucao_automa,
-            path = paste0('logs/',us.name,' - Pacientes_triplicados_para_corrigir_manualmente_openmrs_idart.xlsx'),
+            path = paste0('output/',us.name,' - Pacientes_triplicados_para_corrigir_manualmente_openmrs_idart.xlsx'),
             col_names = TRUE,
             format_headers = TRUE
           )
@@ -598,7 +598,7 @@ if (dir.exists(wd)){
           
             write_xlsx(
               pacintes_nids_formatar_manualmente,
-              path = paste0('logs/',us.name,' - Pacientes_para_formatar_nids_manualmente_no_openmrs_idart.xlsx'),
+              path = paste0('output/',us.name,' - Pacientes_para_formatar_nids_manualmente_no_openmrs_idart.xlsx'),
               col_names = TRUE,
               format_headers = TRUE
             )
@@ -608,7 +608,7 @@ if (dir.exists(wd)){
           
           write_xlsx(
             pacintes_erro_sql,
-            path = paste0('logs/',us.name,' - Pacientes_que_tiveram_erro_sql_durante_a_correcao_proceder_manualmente_no_openmrs_idart.xlsx'),
+            path = paste0('output/',us.name,' - Pacientes_que_tiveram_erro_sql_durante_a_correcao_proceder_manualmente_no_openmrs_idart.xlsx'),
             col_names = TRUE,
             format_headers = TRUE
           )
@@ -618,12 +618,12 @@ if (dir.exists(wd)){
         
         write_xlsx(
           logsExecucao,
-          path = paste0('logs/',us.name, ' - Log_de_actualizacoes_feitas.xlsx'),
+          path = paste0('output/',us.name, ' - Log_de_actualizacoes_feitas.xlsx'),
           col_names = TRUE,
           format_headers = TRUE
         )
         
-        save(list = ls(),file =gsub(pattern = ' ', replacement = '_',x = paste0('logs/',us.name, '.RData') ))
+        save(list = ls(),file =gsub(pattern = ' ', replacement = '_',x = paste0('output/',us.name, '.RData') ))
         
       } 
       
