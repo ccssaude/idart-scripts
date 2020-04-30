@@ -34,9 +34,13 @@ names(existe_openmrs)[names(existe_openmrs) == "uuid.y"] <- "uuid"
 # Actualizar pacietens do iDART sem uuid , Com NID existente no OpenMRS
 
 if(dim(existe_openmrs)[1] > 0){
+  
   for (i in 1:dim(existe_openmrs)[1]) {
     nid <- gsub(x =  existe_openmrs$patientid[i] ,pattern = "'",replacement = '')
+    
+    
     patient_to_update <- composePatientToUpdateNomeNid(i,df=existe_openmrs)
+    
     updatePatientIdart(con.idart = con_postgres,patient.to.update = patient_to_update,new.nid = nid )
     
   }
@@ -62,7 +66,11 @@ idartAllPatients <- getAllPatientsIdart(con_postgres)
 por_actualizar <- inner_join(idartAllPatients,temp,by='uuid')
 por_actualizar <- por_actualizar[which(por_actualizar$patientid != por_actualizar$identifier),]
 
+## Remover pacientes da farmac para nao criar confusao
+farmac_patiens <- getAllPatientsFarmac(con_postgres)
+por_actualizar <- subset(por_actualizar, ! patientid %in% farmac_patiens$patientid , )
 
+#### comeca a processar 
 if(dim(por_actualizar)[1]>0){
   
   for (v in 1:dim(por_actualizar)[1]) {
@@ -74,11 +82,12 @@ if(dim(por_actualizar)[1]>0){
   
 }
 
+
 rm (por_actualizar)
 
 if(dim(logsExecucao)[1] > 0){
   
-  logs_tmp_2 <- logsExecucao
+  logs_tmp_2 <- logsExecucao #  guardar os logs num dataframe separado a cada actualizacao da BD
   
 }
 
@@ -86,15 +95,26 @@ if(dim(logsExecucao)[1] > 0){
 
 ########################               # Pacientes que estao no iDART sem uuid no openmrs                        ########################
 #########################################################################################################################################
+# Sempre que se fizer uma actualizacao no iDART & no OpenMRS deve-se carregar os dados atualizados
+
 idartAllPatients <- getAllPatientsIdart(con_postgres)
+
+#carrefa a tabela de logs vazia
 load(file = 'logs/logsExecucao.Rdata')
 
 
 por_investigar <- idartAllPatients[ which(!idartAllPatients$uuid %in% temp$uuid),]
 
+# investigar pelo nid
 existe_por_investigar <- inner_join(por_investigar,temp,by=c('patientid'='identifier'))
+
+# remover pacientes que existem se pesquisarmos pelo nid
 por_investigar <- por_investigar[which(!por_investigar$patientid %in% existe_por_investigar$patientid ),]
+
 rm(existe_por_investigar)
+
+
+
 
 ########################                remover paciente sem transito                                            ########################
 #########################################################################################################################################
@@ -141,11 +161,13 @@ por_investigar$family_name <- ""
 por_investigar$openmrs_full_name <- ""
 por_investigar$estado_tarv <- ""
 
+# Remover numeros dos nomes
 temp$full_name_openmrs <- sapply(temp$full_name_openmrs , removeNumbersFromName )
 
 
 for (i in 1:dim(por_investigar)[1]) {
   nome <- por_investigar$full_name[i]
+  
   temp$string_dist <-   mapply(getStringDistance, temp$full_name_openmrs,  nome)
   
   index = which(as.numeric(temp$string_dist)  == as.numeric(min(temp$string_dist))  )
@@ -214,19 +236,27 @@ sequencia_comparavel  <- por_investigar[which(nchar(por_investigar$patientid)>=7
 if(dim(sequencia_comparavel)[1] > 0){
   
   sequencia_comparavel$num_seq <- ""
-  if(tipo_nid=='Seq/Ano'){
+  
+  if(tipo_nid == 'Seq/Ano') {
+    sequencia_comparavel$num_seq  <-
+      sapply(sequencia_comparavel$patientid , getNumSeqNid)
     
-    sequencia_comparavel$num_seq  <- sapply( sequencia_comparavel$patientid ,getNumSeqNid )
+  } else if (tipo_nid == 'Ano/Seq') {
+    sequencia_comparavel$num_seq  <-
+      sapply(sequencia_comparavel$patientid , getNumSeqNidV1)
+
+  }   else {
+    message(
+      " Nao foi possivel obter o tipo de Sequencia automaticamente
+                              verifica o tipo de Sequencia e defina manualmete a variavel tipo_nid = ('Ano/Seq'   ou 'Seq/Ano')
+            geralmente para estes casos  costuma ser tipo_nid = 'Ano/Seq' )"
+    )
+    stop(
+      "Nao foi possivel obter o tipo de Sequencia automaticamente
+       verifica o tipo de Sequencia e defina manualmete a variavel tipo_nid = ('Ano/Seq'   ou 'Seq/Ano') geralmente para estes
+         casos  costuma ser tipo_nid = 'Ano/Seq' )"
+    )
     
-  }  else if(tipo_nid=='Ano/Seq'){
-    
-    sequencia_comparavel$num_seq  <- sapply( sequencia_comparavel$patientid ,getNumSeqNidV1 )
-    
-  } else {
-    message(" Nao foi possivel obter o tipo de Sequencia automaticamente  
-                              verifica o tipo de Sequencia e defina manualmete a variavel tipo_nid = ('Ano/Seq'   ou 'Seq/Ano') geralmente para estes casos  costuma ser tipo_nid = 'Ano/Seq' )")
-    stop("Nao foi possivel obter o tipo de Sequencia automaticamente  
-       verifica o tipo de Sequencia e defina manualmete a variavel tipo_nid = ('Ano/Seq'   ou 'Seq/Ano') geralmente para estes casos  costuma ser tipo_nid = 'Ano/Seq' )" )
   }
   
   vec_nids_matched <- c()
@@ -253,11 +283,13 @@ if(dim(sequencia_comparavel)[1] > 0){
         logAction(patient.info = patient_to_update,action = solucao)
         
         
-      } else{
+      } 
+      else{
         
         updatePatientIdart(con.idart = con_postgres,patient.to.update = patient_to_update,new.nid = new_nid) 
         
       }
+      
       vec_nids_matched <<- c(vec_nids_matched, old_nid )
     }
     
@@ -270,8 +302,11 @@ if(dim(sequencia_comparavel)[1] > 0){
   }
 
   
-}
-else{ rm(sequencia_comparavel) }
+} else{ rm(sequencia_comparavel) }
+
+
+
+
 
 if(dim(por_investigar)[1]>0){
   for (var in 1:dim(por_investigar)[1]) {
@@ -291,10 +326,9 @@ if(dim(por_investigar)[1]>0){
   }
 
   
-}
-else { rm(por_investigar) }
+} else { rm(por_investigar) }
 
-} else{ rm(por_investigar) }
+
 
 
 ########################    guardas os logs
@@ -331,42 +365,33 @@ if (dim(logsExecucao)[1]>0){
     
     write_xlsx(
       pacintes_erro_sql,
-      path = paste0('output/' , 'Formatacao_NIDs_',us.name,' - Pacientes_que_tiveram_erro_sql_durante_a_correcao_proceder_manualmente_no_openmrs_idart.xlsx'),
+      path = paste0('output/' , 'Formatacao_NIDs_',us.name,' - Pacientes_que_tiveram_erro_sql_durante_a_correcao_fazer_roll_back.xlsx'),
       col_names = TRUE,
       format_headers = TRUE
     )
     logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_erro_sql$uuid)),]
   } 
   
-  
-  write_xlsx(
-    logsExecucao,
-    path = paste0('output/',us.name, ' - Log_de_actualizacoes_feitas.xlsx'),
-    col_names = TRUE,
-    format_headers = TRUE
-  )
-  
-
 if(exists("logs_tmp_1") && dim(logs_tmp_1)[1] > 0){
   if(exists("logs_tmp_2") && dim(logs_tmp_2)[1] > 0){
     tmp <- rbind.fill(logs_tmp_1,logs_tmp_2)
-    save( tmp ,file =paste0('output/',us.name,'_Actualizacoes_dados_pacientes.RData') )
+    save( tmp ,file =paste0('output/',us.name,'_log_formatacao_nids.RData') )
     rm(logs_tmp_1,logs_tmp_2)
   } else{
-    save(logs_tmp_1 ,file =paste0('output/',us.name,'_Actualizacoes_dados_pacientes.RData' ))
+    save(logs_tmp_1 ,file =paste0('output/',us.name,'_log_formatacao_nids.RData' ))
     rm(logs_tmp_1)
     
   }
 } else {
   
   if(exists("logs_tmp_2") && dim(logs_tmp_2)[1] > 0){
-  save(logs_tmp_2 ,file =paste0('output/',us.name,'_Actualizacoes_dados_pacientes.RData') )
+  save(logs_tmp_2 ,file =paste0('output/',us.name,'_log_formatacao_nids.RData') )
   rm(logs_tmp_2)
   }
   
 }
   
-  save(list = ls(),file =gsub(pattern = ' ', replacement = '_',x = paste0('output/',us.name, '.RData') ))
+  save(list = ls(),file =gsub(pattern = ' ', replacement = '_',x = paste0('output/Environment_',us.name, '_.RData') ))
   
   
   

@@ -130,10 +130,12 @@ getAllPatientsFarmac <- function(con.postgres) {
           "SELECT  clinic, clinicname, 
        mainclinic, mainclinicname, firstnames, homephone, lastname, 
        modified, patientid, sex, uuid
-  FROM public.sync_temp_patients; "
+  FROM sync_temp_patients; "
         )
       )
-
+    
+ return(patients)
+    
   },error = function(cond) {
     
     message(cond)
@@ -156,8 +158,7 @@ getAllPatientsFarmac <- function(con.postgres) {
   })
   
   
-  
-  patients  # same as return(patients)
+return(patients)
   
 }
 

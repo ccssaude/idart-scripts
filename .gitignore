@@ -3,3 +3,5 @@
 versoes_antigas/
 *.xls
 *.xlsx
+output/
+dataClean/.RData
