@@ -956,11 +956,12 @@ removeLettersFromNid <- function(nid) {
 #' @examples name <- removeNumbersFromName('Agnaldo 5-45j samuel)
 removeNumbersFromName <- function(name) {
 
-  name <-
-    gsub("[0-9]", "", name)           # remover numeros
-  name <-
-    gsub("-", "", name)  
   
+  name <-   gsub("[0-9]", "", name)           # remover numeros
+  name <-   gsub("-", "", name)  
+  name <-   gsub("\\*", "", name)  
+  name <-   gsub("\\(", "", name)  
+  name <-   gsub("\\)", "", name)  
   name
 }
 

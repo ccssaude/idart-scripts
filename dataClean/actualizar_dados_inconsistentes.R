@@ -136,7 +136,7 @@ if(dim(por_investigar)[1] > 0){
   ########################    # Remover pacientes sem dispensa, provavelmente sejam transitos/abandonos/obitos/transferidos/para   ########
   #########################################################################################################################################
   por_investigar$totaldispensas[which(is.na(por_investigar$totaldispensas))] <- 0 
-  por_investigar <- por_investigar[which(por_investigar$totaldispensas>3 ),]
+  por_investigar <- por_investigar[which(por_investigar$totaldispensas>2 ),]
   
   
 }
@@ -222,8 +222,7 @@ if(dim(matched)[1]>0){
   
   }
   por_investigar <- por_investigar[which(! por_investigar$patientid %in% matched$patientid) , ]
-}
-else{ rm(matched)}
+} else{ rm(matched)}
 
 ########################    Os pacientes que tem string_dis > 0.08 (margem de erro de 1%) verificamos o padrao do nid e compraramos
 #########################   esse padrao com os NIDS do Openmrs ex; 793/12 se o nid no OpenMRS ofr 011105701/2012/00793 entao trata-se do mesmo paciente
@@ -302,10 +301,8 @@ if(dim(sequencia_comparavel)[1] > 0){
   }
 
   
-} else{ rm(sequencia_comparavel) }
-
-
-
+}
+else{ rm(sequencia_comparavel) }
 
 
 if(dim(por_investigar)[1]>0){
@@ -327,6 +324,10 @@ if(dim(por_investigar)[1]>0){
 
   
 } else { rm(por_investigar) }
+
+
+
+}
 
 
 
@@ -378,21 +379,23 @@ if(exists("logs_tmp_1") && dim(logs_tmp_1)[1] > 0){
     save( tmp ,file =paste0('output/',us.name,'_log_formatacao_nids.RData') )
     rm(logs_tmp_1,logs_tmp_2)
   } else{
-    save(logs_tmp_1 ,file =paste0('output/',us.name,'_log_formatacao_nids.RData' ))
+    save(logs_tmp_1 ,file =paste0('output/',us.name,'iDART_log_actualizacao_nids_do_openmrs.RData' ))
     rm(logs_tmp_1)
     
   }
 } else {
   
   if(exists("logs_tmp_2") && dim(logs_tmp_2)[1] > 0){
-  save(logs_tmp_2 ,file =paste0('output/',us.name,'_log_formatacao_nids.RData') )
+  save(logs_tmp_2 ,file =paste0('output/',us.name,'iDART_log_actualizacao_nids_do_openmrs.RData') )
   rm(logs_tmp_2)
   }
   
 }
   
   save(list = ls(),file =gsub(pattern = ' ', replacement = '_',x = paste0('output/Environment_',us.name, '_.RData') ))
-  
+  setwd(paste0(wd,'output'))
+  # >Zip all files
+  zip(zipfile = gsub(pattern = ' ', replacement = '_',x = paste0('zip_',us.name)), files = dir() )
   
   
 }
