@@ -45,8 +45,8 @@ FROM
 #' @return us_default_locatoion
 #' @examples
 #' default_loc = getOpenmrsDefaultLocation(con_openmrs)
-getOpenmrsDefaultLocation <- function (openmrs.con){
-  resut_set <- dbSendQuery(openmrs.con, "select property_value from global_property where property= 'default_location'")
+getOpenmrsDefaultLocation <- function (openmrs.con, db.name){
+  resut_set <- dbSendQuery(openmrs.con, paste0("select property_value from ",db.name,".global_property where property= 'default_location'"))
   data <- fetch(resut_set,n=1)
   openmrs_default_location <- data$property_value[1]
   RMySQL::dbClearResult(resut_set)
@@ -169,12 +169,12 @@ actualizaRegimeTerapeutico <- function(postges.con,regime.id,cod.regime,regimeno
 #' 
 #' @examples
 #' res = insertRegimeTerapeutico(con_postgresregimeid,cod.regime,regimenopespecificado)
-insertRegimeTerapeutico <- function(postges.con, regime.id ,regime.esquema,active, cod.regime, regimenopespecificado){
+insertRegimeTerapeutico <- function(postges.con, regime.id ,regime.esquema,active, cod.regime, regimenopespecificado,regimeesquemaidart){
   
   dbExecute(
     postges.con,
     paste0(
-      "insert into  public.regimeterapeutico( regimeid, regimeesquema, active, codigoregime,  regimenomeespecificado) VALUES (",
+      "insert into  public.regimeterapeutico( regimeid, regimeesquema, active, codigoregime,  regimenomeespecificado,regimeesquemaidart) VALUES (",
       regime.id,
       ", '",
       regime.esquema,
@@ -184,6 +184,8 @@ insertRegimeTerapeutico <- function(postges.con, regime.id ,regime.esquema,activ
       cod.regime,
       "' , '",
       regimenopespecificado,
+      "' , '",
+      regimeesquemaidart,
       "');"
     )
   )

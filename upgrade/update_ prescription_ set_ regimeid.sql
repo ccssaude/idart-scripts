@@ -1,3 +1,13 @@
+select  p.regimeid , reg.regimeesquema,count(*) 
+from prescription p left join regimeterapeutico reg
+on p.regimeid= reg.regimeid
+
+where reg.active =FALSE
+
+group by  p.regimeid , reg.regimeesquema  order by  reg.regimeesquema  asc 
+
+
+
 update prescription set regimeid = 707806
 where regimeid = 675528;
 

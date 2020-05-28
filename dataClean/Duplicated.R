@@ -88,10 +88,12 @@ if (dir.exists(wd)){
       
       duplicadosiDART <-   getDuplicatesPatiDART(con_postgres)
       ## Pacientes da FARMAC ( vamos garantir que nao modificamos nids destes pacientes)
-      farmac_pacients <-getAllPatientsFarmac(con_postgres)
+      farmac_pacients  <- dbGetQuery(con_postgres,paste0("select distinct patientid, patientfirstname , patientlastname
+                                                  from (select distinct patientid, patientfirstname , patientlastname from
+                                                  sync_temp_dispense sd  where sync_temp_dispenseid='", us.name, "' union all 
+                                                  select distinct patientid, firstnames as  patientfirstname , lastname as patientlastname from
+                                                  sync_temp_patients sp ) all_p order by all_p.patientid"))
 
-
-    
       
       # Cruzar duplicados iDART  com dados do openmrs
       dups_idart_openmrs <- inner_join(duplicadosiDART,openmrsAllPatients, by=c("uuid"))

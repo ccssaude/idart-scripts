@@ -1,11 +1,11 @@
-
+library(tibble)
+library(writexl)
 # Verifica e actualiza pacientes que tem dados no iDART diferentes do OpenMRS
-
+# --  cidalia joao
 # ******** Configure para o dir onde deixou os ficheiros necessarios para executar o programa ****
 
 wd <- '~/R/iDART/idart-scripts/dataClean/'
-
-
+ 
 # Limpar o envinronment
 rm(list=setdiff(ls(), "wd"))
 
@@ -19,14 +19,42 @@ if (dir.exists(wd)){
   message( paste0('O Directorio ', wd, ' nao existe, por favor configure corectamente o dir'))
 }
 
-
-
-########################         # Actualizar primeiro os Pacientes com UUID diferentes iDART/OpenMRS            ########################
+########################         # Actualizar  os dados dos pacientes da FARMAC                                  ########################
 #########################################################################################################################################
+# TRUE/FALSE se a us referencia pacientes para farmac dve actualizar os dados nas tabelas da farmac 
+#  primeiro copiar o nome da clinicname e actualizar openmrs para US que referenciam para farmac 
+referencia.farmac <- TRUE    # modificar para TRUE/FALSE
+
+#por_actualizar <- subset(por_actualizar, ! patientid %in% farmac_patiens$patientid , )
+# se faz referencia a farmac deve actualizar os dados dos pacientes da farmac tambem
+if(referencia.farmac){
+  
+  # Apagar todas prescricoes que nao sao da us local
+  dbExecute(con_postgres, paste0("delete from sync_temp_dispense where sync_temp_dispenseid <> '", us.name, "' ;") )
+  
+  source('correcao_nids_farmac.R')
+  
+  ## Remover pacientes da farmac para nao criar confusao
+  farmac_patients <- dbGetQuery(con_postgres,paste0("select distinct patientid, patientfirstname , patientlastname
+                                                  from (select distinct patientid, patientfirstname , patientlastname from
+                                                  sync_temp_dispense sd  where sync_temp_dispenseid='", us.name, "' union all 
+                                                  select distinct patientid, firstnames as  patientfirstname , lastname as patientlastname from
+                                                  sync_temp_patients sp ) all_p order by all_p.patientid"))
+  
+  farmac_patients <- add_column(farmac_patients, observacao="")
+  farmac_patients <- add_column(farmac_patients, new_nid="")
+
+  
+}
+
+########################         # Actualizar  os Pacientes com UUID diferentes iDART/OpenMRS mas com NIDs iguais  ######################
+#########################################################################################################################################
+# garantir que ocampo uuidopenmrs =uuid sejam iguais
+
+dbExecute(con_local,'update patient set uuidopenmrs =uuid')
+
 temp <- getPatientsInvestigar(con_openmrs)
-
 info_incosistente  <- idartAllPatients[which(!idartAllPatients$uuid %in% temp$uuid),]
-
 existe_openmrs <- inner_join(info_incosistente,temp,by=c('patientid'='identifier'))
 existe_openmrs <- existe_openmrs[ , -which(names(existe_openmrs) %in% c("uuid.x"))]
 names(existe_openmrs)[names(existe_openmrs) == "uuid.y"] <- "uuid"
@@ -42,6 +70,49 @@ if(dim(existe_openmrs)[1] > 0){
     patient_to_update <- composePatientToUpdateNomeNid(i,df=existe_openmrs)
     
     updatePatientIdart(con.idart = con_postgres,patient.to.update = patient_to_update,new.nid = nid )
+    # actualiza os dados nas tabelas da farmac tambem
+    
+    # se faz referencia a farmac deve actualizar os dados dos pacientes da farmac tambem
+    if(referencia.farmac){
+      
+      if(patient_to_update[3] %in% farmac_patients$patientid){
+        
+        dbExecute(con_postgres, paste0("update  sync_temp_patients set patientid = '",new_nid,
+                                       "' , firstnames = '",
+                                       patient_to_update[7], 
+                                       "' , lastname = '",
+                                       patient_to_update[8],
+                                       "' , uuid ='",
+                                       patient_to_update[2],
+                                       "'  where patientid = '",
+                                       patient_to_update[3], "' ;" )  )
+        
+        dbExecute(con_postgres, paste0("update  sync_temp_dispense set patientid = '",new_nid,
+                                       "' , patientfirstname = '",
+                                       patient_to_update[7], 
+                                       "' , patientlastname = '",
+                                       patient_to_update[8],
+                                       "'  where patientid = '",
+                                       patient_to_update[3], "' ;" )  )
+        
+        
+        
+        
+        index_sync_tem_dispense <-which( no_farmac_patients$patientid==patient_to_update[3])
+        index_sync_tem_patient <-which( no_match_patients$patientid==patient_to_update[3])
+        
+        if(length(index_sync_tem_dispense)>0){
+          no_farmac_patients$novo_nid_2[index_sync_tem_dispense[1]] <- new_nid
+        }
+        if(length(index_sync_tem_patient)>0){
+          no_match_patients$novo_nid_2[index_sync_tem_patient[1]] <- new_nid
+        }
+        # farmac_patients$observacao[index[1]]<- paste0("Dados actualizados em sync_tem_patients & sync_temp_dispense NID: ",new_nid)
+        #  farmac_patients$new_nid[index[1]]<- new_nid
+      }
+      
+    }
+    
     
   }
 }
@@ -57,34 +128,75 @@ if(dim(logsExecucao)[1]> 0){
 
   
 }
-
-########################   # Actualizar dados de todos pacientes do iDART com mesmo  uuid.openmrs =uuid.idart, buscar dados do OpenMRS ##
+########################   # Actualizar dados de todos pacientes do iDART com mesmo  uuid.openmrs =uuid.idart ,   ########################
+                           # mas NIDS sao diferentes                                                                ########################
 #########################################################################################################################################
 
 idartAllPatients <- getAllPatientsIdart(con_postgres)
-
 por_actualizar <- inner_join(idartAllPatients,temp,by='uuid')
 por_actualizar <- por_actualizar[which(por_actualizar$patientid != por_actualizar$identifier),]
 
-## Remover pacientes da farmac para nao criar confusao
-farmac_patiens <- getAllPatientsFarmac(con_postgres)
-por_actualizar <- subset(por_actualizar, ! patientid %in% farmac_patiens$patientid , )
+
 
 #### comeca a processar 
 if(dim(por_actualizar)[1]>0){
   
+
   for (v in 1:dim(por_actualizar)[1]) {
     new_nid <- gsub(x =  por_actualizar$identifier[v],pattern = "'",replacement = '')
+    
     patient_to_update= composePatientToUpdateNomeNid(index = v,df = por_actualizar)
     updatePatientIdart(con.idart = con_postgres,patient.to.update = patient_to_update,new.nid =new_nid )
     
+    # actualiza os dados nas tabelas da farmac tambem
+    
+    # se faz referencia a farmac deve actualizar os dados dos pacientes da farmac tambem
+    if(referencia.farmac){
+      
+      if(patient_to_update[3] %in% farmac_patients$patientid){
+        
+        dbExecute(con_postgres, paste0("update  sync_temp_patients set patientid = '",new_nid,
+                                       "' , firstnames = '",
+                                       patient_to_update[7], 
+                                       "' , lastname = '",
+                                       patient_to_update[8],
+                                       "' , uuid ='",
+                                       patient_to_update[2],
+                                       "'  where patientid = '",
+                                       patient_to_update[3], "' ;" )  )
+        
+        dbExecute(con_postgres, paste0("update  sync_temp_dispense set patientid = '",new_nid,
+                                       "' , patientfirstname = '",
+                                       patient_to_update[7], 
+                                       "' , patientlastname = '",
+                                       patient_to_update[8],
+                                       "'  where patientid = '",
+                                       patient_to_update[3], "' ;" )  )
+        
+        
+        
+        
+        index_sync_tem_dispense <-which( no_farmac_patients$patientid==patient_to_update[3])
+        index_sync_tem_patient <-which( no_match_patients$patientid==patient_to_update[3])
+        
+        if(length(index_sync_tem_dispense)>0){
+          no_farmac_patients$novo_nid_2[index_sync_tem_dispense[1]] <- new_nid
+        }
+        if(length(index_sync_tem_patient)>0){
+          no_match_patients$novo_nid_2[index_sync_tem_patient[1]] <- new_nid
+        }
+       # farmac_patients$observacao[index[1]]<- paste0("Dados actualizados em sync_tem_patients & sync_temp_dispense NID: ",new_nid)
+      #  farmac_patients$new_nid[index[1]]<- new_nid
+      }
+      
+    }
+
   }
   
 }
 
 
 rm (por_actualizar)
-
 if(dim(logsExecucao)[1] > 0){
   
   logs_tmp_2 <- logsExecucao #  guardar os logs num dataframe separado a cada actualizacao da BD
@@ -101,8 +213,6 @@ idartAllPatients <- getAllPatientsIdart(con_postgres)
 
 #carrefa a tabela de logs vazia
 load(file = 'logs/logsExecucao.Rdata')
-
-
 por_investigar <- idartAllPatients[ which(!idartAllPatients$uuid %in% temp$uuid),]
 
 # investigar pelo nid
@@ -110,14 +220,10 @@ existe_por_investigar <- inner_join(por_investigar,temp,by=c('patientid'='identi
 
 # remover pacientes que existem se pesquisarmos pelo nid
 por_investigar <- por_investigar[which(!por_investigar$patientid %in% existe_por_investigar$patientid ),]
-
 rm(existe_por_investigar)
 
+# remover paciente em transito
 
-
-
-########################                remover paciente sem transito                                            ########################
-#########################################################################################################################################
 if(dim(por_investigar)[1] > 0){
   
   por_investigar <-  por_investigar[which(  !por_investigar$startreason %in%  c('Paciente em Transito',' Inicio na maternidade')),]
@@ -132,16 +238,13 @@ if(dim(por_investigar)[1] > 0){
   por_investigar <-  por_investigar[which(!por_investigar$patientid %in% dfTemp_4$patientid),]
   rm(dfTemp_2, dfTemp,dfTemp_3,dfTemp_4)
   
-  
-  ########################    # Remover pacientes sem dispensa, provavelmente sejam transitos/abandonos/obitos/transferidos/para   ########
-  #########################################################################################################################################
+
+  # Remover pacientes sem dispensa, provavelmente sejam transitos/abandonos/obitos/transferidos/para   ########
   por_investigar$totaldispensas[which(is.na(por_investigar$totaldispensas))] <- 0 
   por_investigar <- por_investigar[which(por_investigar$totaldispensas>2 ),]
   
   
 }
-
-
 
 
 ########################    Aplicar algoritmo de similaridade de texto nos nomes dos pacientes iDART/ OpenMRS de modo a encontrar
@@ -193,7 +296,7 @@ for (i in 1:dim(por_investigar)[1]) {
 ########################     openmrs ja existe no iDART, se existir a solucao e unir os pacientes ########
 #########################################################################################################################################
 
-matched <- subset(por_investigar,as.numeric(string_dist) < 0.08, )
+matched <- subset(por_investigar,as.numeric(string_dist) < 0.1, )
 
 if(dim(matched)[1]>0){
   
@@ -217,7 +320,37 @@ if(dim(matched)[1]>0){
   else{
    
     updatePatientIdart(con.idart = con_postgres,patient.to.update = patient_to_update,new.nid = new_nid) 
+    #holahola
     
+    # se faz referencia a farmac deve actualizar os dados dos pacientes da farmac tambem
+    if(referencia.farmac){
+      
+      if(patient_to_update[3] %in% farmac_patients$patientid){
+        
+        dbExecute(con_postgres, paste0("update  sync_temp_patients set patientid = '",new_nid,
+                                       "' , firstnames = '",
+                                       patient_to_update[7], 
+                                       "' , lastname = '",
+                                       patient_to_update[8],
+                                       "' , uuid ='",
+                                       patient_to_update[2],
+                                       "'  where patientid = '",
+                                       patient_to_update[3], "' ;" )  )
+        
+        dbExecute(con_postgres, paste0("update  sync_temp_dispense set patientid = '",new_nid,
+                                       "' , patientfirstname = '",
+                                       patient_to_update[7], 
+                                       "' , patientlastname = '",
+                                       patient_to_update[8],
+                                       "'  where patientid = '",
+                                       patient_to_update[3], "' ;" )  )
+       # index <-which( farmac_patients$patientid==patient_to_update[3])
+       # farmac_patients$observacao[index[1]]<- paste0("Dados actualizados em sync_tem_patients & sync_temp_dispense NID: ",new_nid)
+       # farmac_patients$new_nid[index[1]]<- new_nid
+        
+      }
+      
+    }
   }
   
   }
@@ -331,6 +464,9 @@ if(dim(por_investigar)[1]>0){
 
 
 
+####################### diferenca de iuuds entre pacientes 
+
+different_uuid <-
 
 ########################    guardas os logs
 #########################################################################################################################################
@@ -372,13 +508,27 @@ if (dim(logsExecucao)[1]>0){
     )
     logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_erro_sql$uuid)),]
   } 
+  if(referencia.farmac){
+    
+    if(nrow(no_match_patients)>0){
+      write_xlsx(x =no_match_patients,path = 'output/sync_temp_dispense_actualizados.xlsx' )
+    }
+    if(nrow(no_farmac_patients)>0){
+      write_xlsx(x =no_farmac_patients,path = 'output/sync_temp_patient_actualizados.xlsx' )
+    }
+   
+  }
   
 if(exists("logs_tmp_1") && dim(logs_tmp_1)[1] > 0){
   if(exists("logs_tmp_2") && dim(logs_tmp_2)[1] > 0){
     tmp <- rbind.fill(logs_tmp_1,logs_tmp_2)
+    write_xlsx(tmp, path = paste0('output/',us.name,'_log_formatacao_nids.xlsx',  col_names = TRUE,
+                                  format_headers = TRUE)  )
     save( tmp ,file =paste0('output/',us.name,'_log_formatacao_nids.RData') )
     rm(logs_tmp_1,logs_tmp_2)
   } else{
+    write_xlsx(logs_tmp_1, path = paste0('output/',us.name,'iDART_log_actualizacao_nids_do_openmrs.xlsx',  col_names = TRUE,
+                                         format_headers = TRUE )  )
     save(logs_tmp_1 ,file =paste0('output/',us.name,'iDART_log_actualizacao_nids_do_openmrs.RData' ))
     rm(logs_tmp_1)
     
@@ -386,7 +536,9 @@ if(exists("logs_tmp_1") && dim(logs_tmp_1)[1] > 0){
 } else {
   
   if(exists("logs_tmp_2") && dim(logs_tmp_2)[1] > 0){
-  save(logs_tmp_2 ,file =paste0('output/',us.name,'iDART_log_actualizacao_nids_do_openmrs.RData') )
+    write_xlsx(logs_tmp_2, path = paste0('output/',us.name,'iDART_log_actualizacao_nids_do_openmrs.xlsx',  col_names = TRUE,
+                                         format_headers = TRUE)  )
+    save(logs_tmp_2 ,file =paste0('output/',us.name,'iDART_log_actualizacao_nids_do_openmrs.RData') )
   rm(logs_tmp_2)
   }
   

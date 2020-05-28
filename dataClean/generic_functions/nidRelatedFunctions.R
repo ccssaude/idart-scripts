@@ -172,6 +172,24 @@ actualizaNidiDART <-   function(con.idart, patient.to.update,new.nid) {
     # Choose a return value in case of error
     return(0)
   },
+  warning = function(cond) {
+    
+    ## Coisas a fazer se ocorrer um erro 
+    
+    # imprimir msg na consola
+    message(cond$message)
+    
+    
+    # Se for um waring em que nao foi possivel buscar os dados guardar no log e return FALSE
+    if(grepl(pattern = 'could not Retrieve the result',x = cond$message,ignore.case = TRUE)){
+      logAction(patient.info = patient.to.update,action = 'could not Retrieve the result')
+      # guardar o log 
+    }  
+    logAction(patient.info = patient.to.update,action =as.character(cond$message))
+    
+     return(FALSE)
+
+  },
   finally = {
     # NOTE:
     # Here goes everything that should be executed at the end,
@@ -260,6 +278,24 @@ updatePatientIdart <-   function(con.idart, patient.to.update,new.nid) {
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
     return(0)
+  },
+  warning = function(cond) {
+    
+    ## Coisas a fazer se ocorrer um erro 
+    
+    # imprimir msg na consola
+    message(cond$message)
+    
+    
+    # Se for um waring em que nao foi possivel buscar os dados guardar no log e return FALSE
+    if(grepl(pattern = 'could not Retrieve the result',x = cond$message,ignore.case = TRUE)){
+      logAction(patient.info = patient.to.update,action = 'could not Retrieve the result')
+      # guardar o log 
+    }  
+    logAction(patient.info = patient.to.update,action =as.character(cond$message))
+    
+    return(FALSE)
+    
   },
   finally = {
     # NOTE:
@@ -356,6 +392,24 @@ actualizaNidNomeiDART <-   function(con.idart, patient.to.update,new.nid) {
     logAction(patient.info = patient.to.update,action = msg)
     # Choose a return value in case of error
     return(0)
+  },
+  warning = function(cond) {
+    
+    ## Coisas a fazer se ocorrer um erro 
+    
+    # imprimir msg na consola
+    message(cond$message)
+    
+    
+    # Se for um waring em que nao foi possivel buscar os dados guardar no log e return FALSE
+    if(grepl(pattern = 'could not Retrieve the result',x = cond$message,ignore.case = TRUE)){
+      logAction(patient.info = patient.to.update,action = 'could not Retrieve the result')
+      # guardar o log 
+    }  
+    logAction(patient.info = patient.to.update,action =as.character(cond$message))
+    
+    return(FALSE)
+    
   },
   finally = {
     # NOTE:

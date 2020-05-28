@@ -89,7 +89,7 @@ getAllPatientsIdart <- function(con.postgres) {
       paste0(
         "select pat.id, pat.patientid,dateofbirth::TIMESTAMP::DATE as dateofbirth,lower(pat.firstnames) as firstnames , 
         pat.sex, lower(pat.lastname) as lastname ,pat.uuid, ep.startreason,
-        dispensas.total as totalDispensas
+        dispensas.total as totalDispensas , ult_lev.ult_levamentamento
         from patient pat left join
         (
          select patient, max(startdate), startreason
@@ -102,7 +102,13 @@ getAllPatientsIdart <- function(con.postgres) {
             select patientid, count(*) as total
             from packagedruginfotmp
             group by patientid
-       ) dispensas on dispensas.patientid = pat.patientid;
+       ) dispensas on dispensas.patientid = pat.patientid
+
+             left join (
+            select patientid, max(dispensedate) as ult_levamentamento
+            from packagedruginfotmp
+            group by patientid
+       ) ult_lev on ult_lev.patientid = pat.patientid;
 
 
  "
@@ -128,8 +134,8 @@ getAllPatientsFarmac <- function(con.postgres) {
         con.postgres,
         paste0(
           "SELECT  clinic, clinicname, 
-       mainclinic, mainclinicname, firstnames, homephone, lastname, 
-       modified, patientid, sex, uuid
+       mainclinic, mainclinicname, firstnames,  lastname, 
+        patientid,  uuid
   FROM sync_temp_patients; "
         )
       )
@@ -282,6 +288,10 @@ composePatientToUpdate <- function(index,df){
   patientid = df$patientid[index]
   openmrs_patient_id =df$patient_id[index]
   full.name =  df$full_name[index]
+  
+  Encoding(full.name) <- "latin1"
+  full.name <- iconv(full.name, "latin1", "UTF-8",sub='')
+  
   patient <- c(id,uuid,patientid,openmrs_patient_id,full.name,index)
   patient
 }
@@ -319,6 +329,20 @@ composePatientToUpdateNomeNid <- function(index,df){
   openmrs_patient_id =df$patient_id[index]
   firstnames <- df$firstnames[index]
   lastname <-  df$lastname[index]
+  
+# enconding problems
+  Encoding(given_name) <- "latin1"
+  given_name <- iconv(given_name, "latin1", "UTF-8",sub='')
+  
+  Encoding(family_name) <- "latin1"
+  family_name <- iconv(family_name, "latin1", "UTF-8",sub='')
+  
+  Encoding(firstnames) <- "latin1"
+  firstnames <- iconv(firstnames, "latin1", "UTF-8",sub='')
+  
+  Encoding(lastname) <- "latin1"
+  lastname <- iconv(lastname, "latin1", "UTF-8",sub='')
+  
   patient <- c(id,uuid,patientid,openmrs_patient_id,full.name,index,given_name,family_name,firstnames,lastname)
   patient
 }
