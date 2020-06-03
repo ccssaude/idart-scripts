@@ -89,7 +89,7 @@ getAllPatientsIdart <- function(con.postgres) {
       paste0(
         "select pat.id, pat.patientid,dateofbirth::TIMESTAMP::DATE as dateofbirth,lower(pat.firstnames) as firstnames , 
         pat.sex, lower(pat.lastname) as lastname ,pat.uuid, ep.startreason,
-        dispensas.total as totalDispensas , ult_lev.ult_levamentamento
+        dispensas.total as totalDispensas , ult_lev.ult_levant_idart
         from patient pat left join
         (
          select patient, max(startdate), startreason
@@ -105,7 +105,7 @@ getAllPatientsIdart <- function(con.postgres) {
        ) dispensas on dispensas.patientid = pat.patientid
 
              left join (
-            select patientid, max(dispensedate) as ult_levamentamento
+            select patientid, max(dispensedate) as ult_levant_idart
             from packagedruginfotmp
             group by patientid
        ) ult_lev on ult_lev.patientid = pat.patientid;

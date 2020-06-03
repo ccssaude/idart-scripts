@@ -60,7 +60,6 @@ existe_openmrs <- existe_openmrs[ , -which(names(existe_openmrs) %in% c("uuid.x"
 names(existe_openmrs)[names(existe_openmrs) == "uuid.y"] <- "uuid"
 
 # Actualizar pacietens do iDART sem uuid , Com NID existente no OpenMRS
-
 if(dim(existe_openmrs)[1] > 0){
   
   for (i in 1:dim(existe_openmrs)[1]) {
@@ -117,8 +116,6 @@ if(dim(existe_openmrs)[1] > 0){
   }
 }
 
-
-
 rm(info_incosistente)
 rm(existe_openmrs)
 
@@ -135,8 +132,6 @@ if(dim(logsExecucao)[1]> 0){
 idartAllPatients <- getAllPatientsIdart(con_postgres)
 por_actualizar <- inner_join(idartAllPatients,temp,by='uuid')
 por_actualizar <- por_actualizar[which(por_actualizar$patientid != por_actualizar$identifier),]
-
-
 
 #### comeca a processar 
 if(dim(por_actualizar)[1]>0){
@@ -174,6 +169,13 @@ if(dim(por_actualizar)[1]>0){
                                        patient_to_update[3], "' ;" )  )
         
         
+        dbExecute(con_postgres, paste0("update  packagedruginfotmp set patientid = '",new_nid,
+                                       "' , patientfirstname = '",
+                                       patient_to_update[7], 
+                                       "' , patientlastname = '",
+                                       patient_to_update[8],
+                                       "'  where patientid = '",
+                                       patient_to_update[3], "' ;" )  )
         
         
         index_sync_tem_dispense <-which( no_farmac_patients$patientid==patient_to_update[3])
@@ -195,15 +197,12 @@ if(dim(por_actualizar)[1]>0){
   
 }
 
-
 rm (por_actualizar)
 if(dim(logsExecucao)[1] > 0){
   
   logs_tmp_2 <- logsExecucao #  guardar os logs num dataframe separado a cada actualizacao da BD
   
 }
-
-
 
 ########################               # Pacientes que estao no iDART sem uuid no openmrs                        ########################
 #########################################################################################################################################
@@ -266,7 +265,7 @@ por_investigar$estado_tarv <- ""
 
 # Remover numeros dos nomes
 temp$full_name_openmrs <- sapply(temp$full_name_openmrs , removeNumbersFromName )
-
+temp$full_name_openmrs <- sub(pattern = '  ',replacement = " ", x = temp$full_name_openmrs)
 
 for (i in 1:dim(por_investigar)[1]) {
   nome <- por_investigar$full_name[i]
@@ -338,6 +337,15 @@ if(dim(matched)[1]>0){
                                        patient_to_update[3], "' ;" )  )
         
         dbExecute(con_postgres, paste0("update  sync_temp_dispense set patientid = '",new_nid,
+                                       "' , patientfirstname = '",
+                                       patient_to_update[7], 
+                                       "' , patientlastname = '",
+                                       patient_to_update[8],
+                                       "'  where patientid = '",
+                                       patient_to_update[3], "' ;" )  )
+        
+        
+        dbExecute(con_postgres, paste0("update  packagedruginfotmp set patientid = '",new_nid,
                                        "' , patientfirstname = '",
                                        patient_to_update[7], 
                                        "' , patientlastname = '",
@@ -462,11 +470,6 @@ if(dim(por_investigar)[1]>0){
 
 }
 
-
-
-####################### diferenca de iuuds entre pacientes 
-
-different_uuid <-
 
 ########################    guardas os logs
 #########################################################################################################################################
