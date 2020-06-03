@@ -24,14 +24,14 @@ referencia.farmac <- TRUE
 ## OpenMRS  - Configuracao de variaveis de conexao 
 openmrs.user ='esaude'                          # ******** modificar
 openmrs.password='esaude'                       # ******** modificar
-openmrs.db.name='openmrs'                       # ******** modificar
-openmrs.host='192.168.0.101'                     # ******** modificar
-openmrs.port=3306                               # ******** modificar
+openmrs.db.name='albazine'                       # ******** modificar
+openmrs.host='172.18.0.2'                    # ******** modificar
+openmrs.port=3306                                # ******** modificar
 
 postgres.user ='postgres'                       # ******** modificar
 postgres.password='postgres'                    # ******** modificar
-postgres.db.name='pharm'                        # ******** modificar
-postgres.host='192.168.0.117'                   # ******** modificar
+postgres.db.name='albazine'                        # ******** modificar
+postgres.host='172.18.0.3'                   # ******** modificar
 postgres.port=5432                              # ******** modificar
 
 ####################################### Final da config  de Parametros  ########################################################################
@@ -67,6 +67,7 @@ checkScriptsExists <- function (files, dir){
     source('generic_functions/helper_functions_duplicated.R')  ## Carregar funcoes
     source('generic_functions/genericFunctions.R')             ## Carregar funcoes
     source('generic_functions/nidRelatedFunctions.R')          ## Carregar funcoes
+    source('generic_functions/openmrs_rest_api_functions.R')          ## Carregar funcoes
     load(file = 'logs/logsExecucao.Rdata')        ## carrega a tabela dos logs
     
     
