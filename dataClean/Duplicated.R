@@ -626,7 +626,8 @@ if (dir.exists(wd)){
         )
         
         save(list = ls(),file =gsub(pattern = ' ', replacement = '_',x = paste0('output/',us.name, '.RData') ))
-        
+        # >Zip all files
+        zip(zipfile = gsub(pattern = ' ', replacement = '_',x = paste0('zip_',us.name)), files = dir() )
       } 
       
 

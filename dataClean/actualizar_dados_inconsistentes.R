@@ -549,8 +549,7 @@ if(exists("logs_tmp_1") && dim(logs_tmp_1)[1] > 0){
   
   save(list = ls(),file =gsub(pattern = ' ', replacement = '_',x = paste0('output/Environment_',us.name, '_.RData') ))
   setwd(paste0(wd,'output'))
-  # >Zip all files
-  zip(zipfile = gsub(pattern = ' ', replacement = '_',x = paste0('zip_',us.name)), files = dir() )
+
   
   
 }
