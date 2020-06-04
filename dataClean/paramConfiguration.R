@@ -24,13 +24,13 @@ referencia.farmac <- TRUE
 ## OpenMRS  - Configuracao de variaveis de conexao 
 openmrs.user ='esaude'                          # ******** modificar
 openmrs.password='esaude'                       # ******** modificar
-openmrs.db.name='albazine'                       # ******** modificar
+openmrs.db.name='porto'                       # ******** modificar
 openmrs.host='172.18.0.2'                    # ******** modificar
 openmrs.port=3306                                # ******** modificar
 
 postgres.user ='postgres'                       # ******** modificar
 postgres.password='postgres'                    # ******** modificar
-postgres.db.name='albazine'                        # ******** modificar
+postgres.db.name='porto'                        # ******** modificar
 postgres.host='172.18.0.3'                   # ******** modificar
 postgres.port=5432                              # ******** modificar
 

@@ -108,7 +108,8 @@ composePatientToCheck <- function(index,df){
   
   full_name  <- iconv(full_name, "latin1", "UTF-8",sub='')
   full_name  <- gsub(pattern = '  ' ,replacement = ' ', x = full_name)
-  
+  patientid <- gsub(pattern = ' ', replacement = '', x = patientid)
+  patientid <- gsub(pattern = '\t', replacement = '', x = patientid)
   patient <- c(id,patientid,uuid_idart,uuid_openmrs,full_name)
   return(patient)
 }

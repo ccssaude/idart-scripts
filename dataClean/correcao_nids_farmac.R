@@ -107,6 +107,8 @@ if(nrow(no_farmac_patients)>0){
       new_patient_id = match$patientid[1]
       
       dbExecute(con_postgres, paste0("update sync_temp_patients set patientid='",new_patient_id,"' where patientid = '",patient_id, "' ;") )
+      dbExecute(con_postgres, paste0("update packagedruginfotmp set patientid='",new_patient_id,"' where patientid = '",patient_id, "' ;") )
+      dbExecute(con_postgres, paste0("update patientidentifier set value='",new_patient_id,"' where value = '",patient_id, "' ;") )
       no_farmac_patients$observacao[i] <-  paste0('actualizado para: ',new_patient_id)
       message(paste0("Farmac actualizando dados do paciente: ", patient_id,' para : ',new_patient_id))
       no_farmac_patients$novo_nid[i] <- new_patient_id
@@ -116,12 +118,14 @@ if(nrow(no_farmac_patients)>0){
       if(match$uuid[1]==match$uuid[2]){
         new_patient_id = match$patientid[1]
         dbExecute(con_postgres, paste0("update sync_temp_patients set patientid='",new_patient_id,"' where patientid = '",patient_id, "' ;") )
+        dbExecute(con_postgres, paste0("update packagedruginfotmp set patientid='",new_patient_id,"' where patientid = '",patient_id, "' ;") )
+        dbExecute(con_postgres, paste0("update patientidentifier set value='",new_patient_id,"' where value = '",patient_id, "' ;") )
         no_farmac_patients$observacao[i] <-  paste0('actualizado para: ',new_patient_id)
         no_farmac_patients$novo_nid[i] <- new_patient_id
         message(paste0("Farmac actualizando dados do paciente: ", patient_id,' para : ',new_patient_id))
       } else {
         
-        no_farmac_patients$observacao[i] <- " o nid deste pacieente nao existe na tabela patient, e o match dos nomes e duplicado."
+        no_farmac_patients$observacao[i] <- " Paciente duplicado match dos nomes e duplicado."
       }
       
       
@@ -136,12 +140,14 @@ if(nrow(no_farmac_patients)>0){
       if(match$patientid[1]==match$patientid[2] & match$patientid[2]==match$patientid[3] ){
         new_patient_id = match$patientid[1]
         dbExecute(con_postgres, paste0("update sync_temp_patients set patientid='",new_patient_id,"' where patientid = '",patient_id, "' ;") )
+        dbExecute(con_postgres, paste0("update packagedruginfotmp set patientid='",new_patient_id,"' where patientid = '",patient_id, "' ;") )
+        dbExecute(con_postgres, paste0("update patientidentifier set value='",new_patient_id,"' where value = '",patient_id, "' ;") )
         no_farmac_patients$observacao[i] <- paste0('actualizado para: ',new_patient_id)
         no_farmac_patients$novo_nid[i] <- new_patient_id
         message(paste0("Farmac actualizando dados do paciente: ", patient_id,' para : ',new_patient_id))
       } else {
         
-        no_farmac_patients$observacao[i] <- " o nid deste pacieente nao existe na tabela patient, e o match dos nomes e triplicado"
+        no_farmac_patients$observacao[i] <- "Paciente triplicado e o match dos nomes e triplicado"
       }
       
       
@@ -149,13 +155,13 @@ if(nrow(no_farmac_patients)>0){
     else {
       
       
-      no_farmac_patients$observacao[i] <- "e o nid deste pacieente nao existe na tabela patient, e o match dos nomes e triplicado"
+      no_farmac_patients$observacao[i] <- "Paciente aparece 4x+ na tabela patient"
     }
     
     
   }
   
-  write_xlsx(x = no_farmac_patients,path = 'output/correcao_sync_temp_dispense.xlsx')
+  write_xlsx(x = no_farmac_patients,path = paste0("output/", us.name,"correcao_sync_temp_dispense.xlsx"))
   
   
 }
