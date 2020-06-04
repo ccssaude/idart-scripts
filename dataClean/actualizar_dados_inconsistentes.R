@@ -7,7 +7,7 @@ library(writexl)
 wd <- '~/R/iDART/idart-scripts/dataClean/'
  
 # Limpar o envinronment
-rm(list=setdiff(ls(), "wd"))
+rm(list=setdiff(ls(), c("wd", "tipo_nid")))
 
 if (dir.exists(wd)){
   
@@ -51,7 +51,7 @@ if(referencia.farmac){
 #########################################################################################################################################
 # garantir que ocampo uuidopenmrs =uuid sejam iguais
 
-dbExecute(con_local,'update patient set uuidopenmrs =uuid')
+dbExecute(con_postgres,'update patient set uuidopenmrs =uuid')
 
 temp <- getPatientsInvestigar(con_openmrs)
 info_incosistente  <- idartAllPatients[which(!idartAllPatients$uuid %in% temp$uuid),]

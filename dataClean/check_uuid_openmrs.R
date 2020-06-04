@@ -1,8 +1,33 @@
 # pacientes com mesmo nid mas uuid e diferente idartuuid != personuuid
+library(properties)
+library(httr)
+
+library(tibble)
+library(writexl)
+# Verifica e actualiza pacientes que tem dados no iDART diferentes do OpenMRS
+# --  cidalia joao
+# ******** Configure para o dir onde deixou os ficheiros necessarios para executar o programa ****
+
+wd <- '~/R/iDART/idart-scripts/dataClean/'
+
+# Limpar o envinronment
+rm(list=setdiff(ls(), "wd"))
+
+if (dir.exists(wd)){
+  
+  setwd(wd)  
+  source('paramConfiguration.R')     
+  
+} else {
+  
+  message( paste0('O Directorio ', wd, ' nao existe, por favor configure corectamente o dir'))
+}
 
 ####################### diferenca de uuids entre pacientes   (uuid do idart e diferente uuid openmrs  mas os nids sao iguais) ###############################
 #############################################################################################################################################################
 
+temp <- getPatientsInvestigar(con_openmrs)
+idartAllPatients <- getAllPatientsIdart(con_postgres)
 different_uuid <- inner_join(idartAllPatients, temp, by=c('patientid'='identifier')) %>% select( id, patientid, dateofbirth,firstnames,
                                                                                                  sex, lastname, startreason,totaldispensas, uuid.x, uuid.y,given_name,birthdate,
                                                                                                  middle_name, family_name, full_name_openmrs, estado_tarv,ult_levant_idart,
@@ -65,6 +90,14 @@ if(nrow(different_uuid)>0){
     # se a api nao retornar nada este nid nao existe
     df_openmrs_pat <- apiGetPatientByNid(jdbc.properties = jdbc_properties, patientid = patient)
     
+    if(names(df_openmrs_pat)=="error"){
+      if(df_openmrs_pat$error$message=="User is not logged in"){
+        
+        stop(" o user da api nao foi criado  authenticate('farmac', 'iD@rt2020!') ")
+      }
+      
+    }
+    
     if(length(df_openmrs_pat$results)==0){
       
       message(paste0(" NID :", patient[2], " nao existe no openmrs"))
@@ -98,14 +131,14 @@ if(nrow(different_uuid)>0){
       
       if(different_uuid$stringdist_pat1[k] < different_uuid$stringdist_pat2[k]){
         
-        different_uuid$new_uuid[k]  <- df_openmrs_pat$results[[1]]$uuid
-        different_uuid$obs[k] <- pat_name_1
+        different_uuid$new_uuid[k]  <- df_openmrs_pat$results[[2]]$uuid
+        different_uuid$obs[k] <- pat_name_2
         
         
       } else{
         
-        different_uuid$new_uuid[k]  <- df_openmrs_pat$results[[2]]$uuid
-        different_uuid$obs[k] <- pat_name_2
+        different_uuid$new_uuid[k]  <- df_openmrs_pat$results[[1]]$uuid
+        different_uuid$obs[k] <- pat_name_1
       }
       
       

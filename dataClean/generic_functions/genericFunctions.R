@@ -292,9 +292,13 @@ composePatientToUpdate <- function(index,df){
   Encoding(full.name) <- "latin1"
   full.name <- iconv(full.name, "latin1", "UTF-8",sub='')
   
+  patientid <- gsub(pattern = ' ', replacement = '', x = patientid) 
+  patientid <- gsub(pattern = '\t', replacement = '', x = patientid)
   patient <- c(id,uuid,patientid,openmrs_patient_id,full.name,index)
   patient
 }
+
+
 
 
 #' Compoe um vector com dados do paciente que se vai actualizar/ Formatacao de NIDS
@@ -342,7 +346,8 @@ composePatientToUpdateNomeNid <- function(index,df){
   
   Encoding(lastname) <- "latin1"
   lastname <- iconv(lastname, "latin1", "UTF-8",sub='')
-  
+  patientid <- gsub(pattern = ' ', replacement = '', x = patientid)
+  patientid <- gsub(pattern = '\t', replacement = '', x = patientid)
   patient <- c(id,uuid,patientid,openmrs_patient_id,full.name,index,given_name,family_name,firstnames,lastname)
   patient
 }
@@ -358,7 +363,13 @@ composePatientToLog <- function(df,index){
   id = df$id[index]
   uuid = df$uuid[index]
   patientid = df$patientid[index]
+  patientid <- gsub(pattern = ' ', replacement = '', x = patientid) #heheh
   full_name <- str_replace_na(paste0(df$firstnames[index], ' ',df$lastname[index]),replacement=' ')
+  
+  Encoding(full_name) <- "latin1"
+  full_name <- iconv(full_name, "latin1", "UTF-8",sub='')
+  
+  patientid <- gsub(pattern = '\t', replacement = '', x = patientid)
   patient <- c(id,uuid,patientid,full_name)
   patient
 }
