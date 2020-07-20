@@ -14,7 +14,7 @@ checkPatientUuidExistsOpenMRS <- function(jdbc.properties, patient) {
   status <- TRUE
   url.check.patient <- paste0(base.url,'person/',patient[4])
   
-  r <- content(GET(url.check.patient, authenticate('farmac', 'iD@rt2020!')), as = "parsed")
+  r <- content(GET(url.check.patient, authenticate('admin', 'eSaude123')), as = "parsed")
   
   if("error" %in% names(r)){
     if(r$error$message =="Object with given uuid doesn't exist" ){
@@ -66,7 +66,7 @@ apiGetPatientByNid <- function(jdbc.properties, patientid ) {
   url.check.patient <- paste0(base.url,'patient?q=' ,patientid[2])
   openmrsuuid <- ""
   
-  r <- content(GET(url.check.patient, authenticate('farmac', 'iD@rt2020!')), as = "parsed")
+  r <- content(GET(url.check.patient, authenticate('admin', 'eSaude123')), as = "parsed")
   
   return(r)
 }
@@ -83,7 +83,7 @@ apiGetPatientByName <- function(jdbc.properties, patient.full.name ) {
   base.url <-  as.character(jdbc.properties$urlBase)
   url.check.patient <- paste0(base.url,'patient?q=' ,gsub(pattern = ' ', replacement = '%20' ,x =patient.full.name,ignore.case = TRUE ))
   
-  r <- content(GET(url.check.patient, authenticate('farmac', 'iD@rt2020!')), as = "parsed")
+  r <- content(GET(url.check.patient, authenticate('admin', 'eSaude123')), as = "parsed")
   
   return(r)
 }

@@ -23,7 +23,7 @@ if (dir.exists(wd)){
 #########################################################################################################################################
 # TRUE/FALSE se a us referencia pacientes para farmac dve actualizar os dados nas tabelas da farmac 
 #  primeiro copiar o nome da clinicname e actualizar openmrs para US que referenciam para farmac 
-referencia.farmac <- TRUE    # modificar para TRUE/FALSE
+referencia.farmac <- FALSE    # modificar para TRUE/FALSE
 
 #por_actualizar <- subset(por_actualizar, ! patientid %in% farmac_patiens$patientid , )
 # se faz referencia a farmac deve actualizar os dados dos pacientes da farmac tambem
@@ -123,7 +123,6 @@ if(dim(logsExecucao)[1]> 0){
   
   logs_tmp_1 <- logsExecucao
 
-  
 }
 ########################   # Actualizar dados de todos pacientes do iDART com mesmo  uuid.openmrs =uuid.idart ,   ########################
                            # mas NIDS sao diferentes                                                                ########################
@@ -240,7 +239,7 @@ if(dim(por_investigar)[1] > 0){
 
   # Remover pacientes sem dispensa, provavelmente sejam transitos/abandonos/obitos/transferidos/para   ########
   por_investigar$totaldispensas[which(is.na(por_investigar$totaldispensas))] <- 0 
-  por_investigar <- por_investigar[which(por_investigar$totaldispensas>2 ),]
+  por_investigar <- por_investigar[which(por_investigar$totaldispensas>3 ),]
   
   
 }
@@ -474,7 +473,7 @@ if(dim(por_investigar)[1]>0){
 ########################    guardas os logs
 #########################################################################################################################################
 ##  Exportar os Logs
-if (dim(logsExecucao)[1]>0){
+if(dim(logsExecucao)[1]>0){
   
   pacintes_erro_ss<-  logsExecucao[which(grepl(pattern = 'SS-CM',x=logsExecucao$accao,ignore.case = TRUE)),] 
   pacintes_dups_apenas_idart_unir_com_outro <-  logsExecucao[which(grepl(pattern = '3.1.2:-CM',x=logsExecucao$accao,ignore.case = TRUE)),] 

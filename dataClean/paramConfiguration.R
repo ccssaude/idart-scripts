@@ -18,21 +18,22 @@ require(writexl)
 #  Nota para US que refereciam pacientes para farmac deve-se copiar o nome da clinicname da tabela clinic
 #  e actualizar o location name no openmrs para US , e default location em administracao-> configuracoes
 
-referencia.farmac <- TRUE 
+referencia.farmac <- FALSE 
 
 
 ## OpenMRS  - Configuracao de variaveis de conexao 
-openmrs.user ='esaude'                          # ******** modificar
-openmrs.password='esaude'                       # ******** modificar
-openmrs.db.name='porto'                       # ******** modificar
-openmrs.host='172.18.0.2'                    # ******** modificar
-openmrs.port=3306                                # ******** modificar
+openmrs.user ='esaude'                         # ******** modificar
+openmrs.password='esaude'                      # ******** modificar
+openmrs.db.name='xipamanine'                   # ******** modificar
+openmrs.host='172.18.0.2'                      # ******** modificar
+openmrs.port=3306                              # ******** modificar
 
-postgres.user ='postgres'                       # ******** modificar
-postgres.password='postgres'                    # ******** modificar
-postgres.db.name='porto'                        # ******** modificar
-postgres.host='172.18.0.3'                   # ******** modificar
-postgres.port=5432                              # ******** modificar
+
+postgres.user ='postgres'                      # ******** modificar
+postgres.password='postgres'                   # ******** modificar
+postgres.db.name='xipamanine'                  # ******** modificar
+postgres.host='172.18.0.3'                     # ******** modificar
+postgres.port=5432                             # ******** modificar
 
 ####################################### Final da config  de Parametros  ########################################################################
 ################################################################################################################################################

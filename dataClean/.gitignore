@@ -1,0 +1,5 @@
+dataclean/temp/
+dataclean/output/
+.RData
+.Rhistory
+dataclean/.RData

@@ -1,0 +1,17 @@
+ update patient set uuidopenmrs ='0e733822-fbbe-43d6-9513-cc786362b241' ,uuid ='0e733822-fbbe-43d6-9513-cc786362b241' where id =489419 ;
+ update patient set uuidopenmrs ='7BD3AF53-16A3-49DF-B5C6-105D9C889FCC' ,uuid ='7BD3AF53-16A3-49DF-B5C6-105D9C889FCC' where id =495734 ;
+ update patient set uuidopenmrs ='EFF44EE6-E742-4556-BCAF-C93936821FE8' ,uuid ='EFF44EE6-E742-4556-BCAF-C93936821FE8' where id =476369 ;
+ update patient set uuidopenmrs ='aac8e699-5c51-42c8-8c9c-cb774b018ec9' ,uuid ='aac8e699-5c51-42c8-8c9c-cb774b018ec9' where id =476225 ;
+ update patient set uuidopenmrs ='dd857833-8b08-485a-813e-7e208bacd1fe' ,uuid ='dd857833-8b08-485a-813e-7e208bacd1fe' where id =499550 ;
+ update patient set uuidopenmrs ='57da5268-fba9-4a08-9e8f-71fb0649fa77' ,uuid ='57da5268-fba9-4a08-9e8f-71fb0649fa77' where id =495386 ;
+ update patient set uuidopenmrs ='C64DCCE0-D7D3-40E7-B7EC-B7184BE0D2E3' ,uuid ='C64DCCE0-D7D3-40E7-B7EC-B7184BE0D2E3' where id =484394 ;
+ update patient set uuidopenmrs ='4BE8EDB9-F4EE-4808-BBB4-568AF4A74219' ,uuid ='4BE8EDB9-F4EE-4808-BBB4-568AF4A74219' where id =480560 ;
+ update patient set uuidopenmrs ='4322ace8-487e-4f36-8ad2-841dee2eb59a' ,uuid ='4322ace8-487e-4f36-8ad2-841dee2eb59a' where id =1277929 ;
+ update patient set uuidopenmrs ='887fc489-a012-41c2-81ed-2f190c9dd8f1' ,uuid ='887fc489-a012-41c2-81ed-2f190c9dd8f1' where id =1397293 ;
+ update patient set uuidopenmrs ='12E399AB-3CA0-459D-8753-5AE93AF4C53F' ,uuid ='12E399AB-3CA0-459D-8753-5AE93AF4C53F' where id =482840 ;
+ update patient set uuidopenmrs ='556703C1-3D24-472E-BED6-8BFBBFDF2448' ,uuid ='556703C1-3D24-472E-BED6-8BFBBFDF2448' where id =818494 ;
+ update patient set uuidopenmrs ='96F5B00B-52D0-43BB-94EE-9C8BC2884B93' ,uuid ='96F5B00B-52D0-43BB-94EE-9C8BC2884B93' where id =477974 ;
+ update patient set uuidopenmrs ='57423b31-95d8-4a75-9d23-3a29a5eee284' ,uuid ='57423b31-95d8-4a75-9d23-3a29a5eee284' where id =1393937 ;
+ update patient set uuidopenmrs ='48f4882d-9458-416d-863c-1c5776744e62' ,uuid ='48f4882d-9458-416d-863c-1c5776744e62' where id =810977 ;
+ update patient set uuidopenmrs ='493C073D-E8C4-4399-86C9-B4C05EF21594' ,uuid ='493C073D-E8C4-4399-86C9-B4C05EF21594' where id =485780 ;
+ update patient set uuidopenmrs ='27EBFAFD-23C0-4B4E-9412-B763D8CC5522' ,uuid ='27EBFAFD-23C0-4B4E-9412-B763D8CC5522' where id =485762 ;

@@ -14,8 +14,8 @@ source('genericFunctions.R')
 # iDART Stuff - Configuracoes de variaveis de conexao 
 postgres.user ='postgres'
 postgres.password='postgres'
-postgres.db.name='pharm'
-postgres.host='192.168.0.117'
+postgres.db.name='xipamanine'
+postgres.host='172.18.0.3'
 postgres.port=5432
 # Objecto de connexao com a bd openmrs postgreSQL
 con_local <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres.password, dbname = postgres.db.name,host = postgres.host)
@@ -26,7 +26,7 @@ con_local <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres.pa
 openmrs.user ='esaude'
 openmrs.password='esaude'
 openmrs.db.name='openmrs'
-openmrs.host='172.18.0.2'
+openmrs.host='192.168.0.150'
 openmrs.port=3306
 #us.code= '0111040601' # CS 1 junho# modificar este parametro para cada US. Este e o Cod da US definido pelo MISAU e geralmente e a primeira parte do NID
 # Objecto de connexao com a bd openmrs
@@ -37,6 +37,10 @@ regimes_terap <- getRegimesTerapeuticos(con_local)
 
 #Carregar os regimes padronizados
 load(file = 'regimes.RDATA')
+
+#regimes_padronizados <- dbGetQuery(con_local, 'select * from regimeterapeutico where active=TRUE ;')
+# regimes_padronizados$regimenomeespecificado <- gsub(' ',replacement = '',x =regimes_padronizados$regimenomeespecificado )
+# regimes_padronizados$regimenomeespecificado <- gsub('\r\n',replacement = '',x =regimes_padronizados$regimenomeespecificado )
 
 
 #regimes_terap <- regimes_terap[regimes_terap$active == TRUE,  ]
@@ -155,7 +159,7 @@ insertGenericProvider(con_local)
 ## 1 --  Primeiro executar o script com alteracoes atraves do pg admin
 ## 
 # Deve-se mudar o nome de Clinic name , StockCenter name no iDART de modo a ser igual ao default_location  no openmrs
-new_clinic_name  <- getOpenmrsDefaultLocation(con_openmrs,'albazine')
+new_clinic_name  <- getOpenmrsDefaultLocation(con_openmrs,'openmrs')
 idart_clinic_name <- getIdartClinicName(con_local)
 facility_name <- getIdartFacilityName(con_local)
 stockcenter_name <- getIdartStockCenterName(con_local)
