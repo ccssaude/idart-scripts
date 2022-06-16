@@ -3,5 +3,6 @@
 versoes_antigas/
 *.xls
 *.xlsx
-output/
+dataClean/output/
 dataClean/.RData
+upgrade/.RData

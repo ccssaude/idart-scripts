@@ -62,7 +62,7 @@
 
 # ******** Configure para o dir onde deixou os ficheiros necessarios para executar o programa ****
 
-wd <- '~/R/iDART/idart-scripts/dataClean/'
+wd <- '~/Git/idart-scripts/dataClean/'
 
 # Limpar o envinronment
 
@@ -517,9 +517,8 @@ if (dir.exists(wd)){
       
 ##############################################################################################################################################################
 ##############################################################################################################################################################
-
-  ##  Exportar os Logs
-  if (dim(logsExecucao)[1]>0){
+##  Exportar os Logs
+if(dim(logsExecucao)[1]>0){
         
         #corrigir_manualmente <- logsExecucao[which(grepl(pattern = 'CM',x=logsExecucao$accao,ignore.case = TRUE)),]
         pacientes_triplicados_sem_solucao_automa <- logsExecucao[which(grepl(pattern = 'G4.1-PT',x=logsExecucao$accao,ignore.case = TRUE)),]
@@ -530,18 +529,7 @@ if (dir.exists(wd)){
         pacintes_erro_sql <-  logsExecucao[which(grepl(pattern = 'BD_ERROR',x=logsExecucao$accao,ignore.case = TRUE)),] 
         pacintes_erro_ss<-  logsExecucao[which(grepl(pattern = 'SS-CM',x=logsExecucao$accao,ignore.case = TRUE)),] 
   
-      
 
-        if(dim(pacintes_erro_ss)[1]>0){
-          
-          write_xlsx(
-            pacintes_erro_ss,
-            path = paste0('output/',us.name,' - Pacientes_duplicados_apenas_idart_que_nao_existem_openmrs.xlsx'),
-            col_names = TRUE,
-            format_headers = TRUE
-          )
-          logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_erro_ss$uuid)),]
-        }
         if(dim(pacintes_unir_2)[1]>0){
           
           if(dim(pacintes_unir)[1]>0){
@@ -553,8 +541,8 @@ if (dir.exists(wd)){
               col_names = TRUE,
               format_headers = TRUE
             )
-            logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_unir$uuid)),]
-            logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_unir_2$uuid)),]
+            #logsExecucao <- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_unir$uuid)),]
+           # logsExecucao <- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_unir_2$uuid)),]
           } else {
             write_xlsx(
               pacintes_unir_2,
@@ -562,18 +550,9 @@ if (dir.exists(wd)){
               col_names = TRUE,
               format_headers = TRUE
               )
-            logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_unir_2$uuid)),]
+            #logsExecucao <- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_unir_2$uuid)),]
         } }
-        if(dim(pacintes_unir)[1]>0){
-          
-          write_xlsx(
-            pacintes_unir,
-            path = paste0('output/',us.name,' - Pacientes_para_unir_manualmente_no_openmrs_idart.xlsx'),
-            col_names = TRUE,
-            format_headers = TRUE
-          )
-          logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_unir$uuid)),]
-        }
+
         if(dim(pacintes_triplicados_unir)[1]>0){
 
             write_xlsx(
@@ -582,7 +561,7 @@ if (dir.exists(wd)){
               col_names = TRUE,
               format_headers = TRUE
             )
-          logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_triplicados_unir$uuid)),]
+         #logsExecucao <- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_triplicados_unir$uuid)),]
           }
         if(dim(pacientes_triplicados_sem_solucao_automa)[1]>0){
           
@@ -592,7 +571,7 @@ if (dir.exists(wd)){
             col_names = TRUE,
             format_headers = TRUE
           )
-          logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacientes_triplicados_sem_solucao_automa$uuid)),]
+        #  logsExecucao <- logsExecucao[which(!( logsExecucao$uuid %in% pacientes_triplicados_sem_solucao_automa$uuid)),]
           
           
         }
@@ -604,7 +583,7 @@ if (dir.exists(wd)){
               col_names = TRUE,
               format_headers = TRUE
             )
-            logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_nids_formatar_manualmente$uuid)),]
+           # logsExecucao <- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_nids_formatar_manualmente$uuid)),]
           } 
         if(dim(pacintes_erro_sql)[1]>0){
           
@@ -614,7 +593,7 @@ if (dir.exists(wd)){
             col_names = TRUE,
             format_headers = TRUE
           )
-          logsExecucao <<- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_erro_sql$uuid)),]
+         # logsExecucao <- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_erro_sql$uuid)),]
         } 
         
         
@@ -625,11 +604,29 @@ if (dir.exists(wd)){
           format_headers = TRUE
         )
         
+        
+        
+        if(dim(pacintes_erro_ss)[1]>0){
+          
+          write_xlsx(
+            pacintes_erro_ss,
+            path = paste0('output/',us.name,' - Pacientes_duplicados_apenas_idart_que_nao_existem_openmrs.xlsx'),
+            col_names = TRUE,
+            format_headers = TRUE
+          )
+         # logsExecucao <- logsExecucao[which(!( logsExecucao$uuid %in% pacintes_erro_ss$uuid)),]
+        }
+        
         save(list = ls(),file =gsub(pattern = ' ', replacement = '_',x = paste0('output/',us.name, '.RData') ))
         # >Zip all files
-        zip(zipfile = gsub(pattern = ' ', replacement = '_',x = paste0('output/zip_',us.name)), files = dir() )
+        setwd('output/')
+        zip(zipfile = gsub(pattern = ' ', replacement = '_',x = paste0('zip_',us.name)), files = dir() )
       } 
       
 
-      
-
+      write_xlsx(
+        duplicadosOpenmrs,
+        path = paste0(us.name,'-Pacientes_duplicados_openmrs.xlsx'),
+        col_names = TRUE,
+        format_headers = TRUE
+      )

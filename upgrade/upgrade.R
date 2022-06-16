@@ -5,7 +5,7 @@ require(plyr)     ## instalar com install.packages("plyr")
 require(dplyr)    ## instalar com install.packages("dplyr")
 ####################################### Configuracao de Parametros  #####################################################################
 #########################################################################################################################################
-wd <- '~/R/iDART/idart-scripts/upgrade/'  
+wd <- '~/Git/idart-scripts/upgrade/'  
 setwd(wd)
 
 source('sql_querys.R')
@@ -14,8 +14,8 @@ source('genericFunctions.R')
 # iDART Stuff - Configuracoes de variaveis de conexao 
 postgres.user ='postgres'
 postgres.password='postgres'
-postgres.db.name='xipamanine'
-postgres.host='172.18.0.3'
+postgres.db.name='pharm'
+postgres.host='10.1.3.116'
 postgres.port=5432
 # Objecto de connexao com a bd openmrs postgreSQL
 con_local <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres.password, dbname = postgres.db.name,host = postgres.host)
@@ -26,7 +26,7 @@ con_local <-  dbConnect(PostgreSQL(),user = postgres.user,password = postgres.pa
 openmrs.user ='esaude'
 openmrs.password='esaude'
 openmrs.db.name='openmrs'
-openmrs.host='192.168.0.150'
+openmrs.host='10.1.3.251'
 openmrs.port=3306
 #us.code= '0111040601' # CS 1 junho# modificar este parametro para cada US. Este e o Cod da US definido pelo MISAU e geralmente e a primeira parte do NID
 # Objecto de connexao com a bd openmrs
@@ -174,7 +174,7 @@ if(status==1){
   message('Nao foi possivel inserir o facilityname no iDART Insira manualmente')
   
 }
-
+  
 
 status <- dbExecute(con_local,  paste0("update public.clinic    set clinicname = '",new_clinic_name,"' where clinicname = '",facility_name,"';"))
 if(status==1){
@@ -192,3 +192,8 @@ if(status==1){
   message('Nao foi possivel inserir o stockcentername no iDART Insira manualmente')
   
 }
+
+
+
+
+  

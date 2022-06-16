@@ -17,22 +17,15 @@ checkPatientUuidExistsOpenMRS <- function(jdbc.properties, patient) {
   r <- content(GET(url.check.patient, authenticate('admin', 'eSaude123')), as = "parsed")
   
   if("error" %in% names(r)){
-    if(r$error$message =="Object with given uuid doesn't exist" ){
-      saveLogError(us.name = main_clinic_name,
-                   event.date = as.character(Sys.time()),
-                   action = paste0("sendFilaOpenMRS - ",patient[1],' - ', patient[4]),
-                   error ="Object with given uuid doesn't exist" )
-    }
-    status<-FALSE
+    message("Object with given uuid doesn't exist" )
     return(FALSE)
-    
-  } else{
+    } else{
     
     return(status)
     
   }
   
-  return(status)
+
 }
 
 
@@ -60,6 +53,7 @@ readJdbcProperties <- function(file='jdbc.properties') {
 #' 
 
 apiGetPatientByNid <- function(jdbc.properties, patientid ) {
+  
   # url da API
   base.url.rest <- as.character(jdbc.properties$urlBaseReportingRest)
   base.url <-  as.character(jdbc.properties$urlBase)
@@ -67,8 +61,8 @@ apiGetPatientByNid <- function(jdbc.properties, patientid ) {
   openmrsuuid <- ""
   
   r <- content(GET(url.check.patient, authenticate('admin', 'eSaude123')), as = "parsed")
-  
   return(r)
+  
 }
 
 #' apiGetPatientByName ->  verifica se existe um paciente no openmrs com um det. nome
@@ -89,27 +83,16 @@ apiGetPatientByName <- function(jdbc.properties, patient.full.name ) {
 }
 
 
-#' composePatientToCheck --> Compoe um vector com dados do paciente =
-#' 
-#' @param df tabela de duplicados para extrair os dados do Pat
-#' @param index row do paciente em causa 
-#' @return vector[id,uuid,patientid,openmrs_patient_id,full.name,index] 
-#' @examples pat <-  composePatientToCheck(k, df.different_uuid)
-#' 
-composePatientToCheck <- function(index,df){
+
+
+apiCheckEstadoPermanencia <- function(jdbc.properties, patient.uuid ) {
+  # url da API
+  url.base.reporting.rest<- as.character(jdbc.properties$urlBaseReportingRest)
+  #base.url <-  as.character(jdbc.properties$urlBase)
+  url.check.patient <- paste0(url.base.reporting.rest,'?personUuid=' ,patient.uuid)
   
-  id = df$id[index]
-  patientid = df$patientid[index]
-  uuid_idart = df$uuididart[index]
-  uuid_openmrs =df$uuidopenmrs[index]
-  full_name =  df$idart_full_name[index]
+  r <- content(GET(url.check.patient, authenticate('admin', 'eSaude123')), as = "parsed")
   
-  Encoding(full_name) <- "latin1"
-  
-  full_name  <- iconv(full_name, "latin1", "UTF-8",sub='')
-  full_name  <- gsub(pattern = '  ' ,replacement = ' ', x = full_name)
-  patientid <- gsub(pattern = ' ', replacement = '', x = patientid)
-  patientid <- gsub(pattern = '\t', replacement = '', x = patientid)
-  patient <- c(id,patientid,uuid_idart,uuid_openmrs,full_name)
-  return(patient)
+  return(r)
 }
+
